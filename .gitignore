@@ -1,0 +1,4 @@
+/node_modules/
+/.idea/
+/sdc_client.iml
+/coverage/
