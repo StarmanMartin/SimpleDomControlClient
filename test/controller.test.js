@@ -5,6 +5,7 @@
 
 import * as sdc from '../dist/index.js';
 import * as sdc_view from '../simpleDomControl/sdc_view.js';
+import {app} from '../simpleDomControl/sdc_main.js';
 import {jest} from '@jest/globals'
 import $ from 'jquery';
 window.$ = $;
@@ -16,39 +17,39 @@ class TestCtr extends sdc.AbstractSDC {
         this.events.unshift({});
     }
 
-    //-------------------------------------------------//
-    // Lifecycle handler                               //
-    // - onInit (tag parameter)                        //
-    // - onLoad (DOM not set)                          //
-    // - willShow  (DOM set)                           //
-    // - afterShow  (recalled on reload)               //
-    //-------------------------------------------------//
-    // - onRefresh                                     //
-    //-------------------------------------------------//
-    // - onRemove                                      //
-    //-------------------------------------------------//
-
-    onInit() {
+    sayA() {
+        return 'A'
     }
 
-    onLoad($html) {
-        return super.onLoad($html);
+    onInit() {}
+}
+
+class TestCtrA extends sdc.AbstractSDC {
+    constructor() {
+        super();
+        this.contentUrl = 'TestCtrA'; //<test-ctr-a>
+        this.events.unshift({});
     }
 
-    willShow() {
-        return super.willShow();
+    sayA() {
+        return 'B'
     }
 
-    afterShow() {
-        return super.afterShow();
+    sayB() {
+        return 'B'
     }
 
-    onRefresh() {
-        return super.onRefresh();
-    }
+    onInit() {}
 }
 
 describe('Controller', () => {
+    let ajaxSpy;
+    beforeEach(() => {
+        ajaxSpy = jest.spyOn($, 'ajax');
+        ajaxSpy.mockImplementation(()=> {
+            return Promise.resolve('<div></div>');
+        });
+    });
 
     afterEach(() => {
         jest.restoreAllMocks();
@@ -57,10 +58,6 @@ describe('Controller', () => {
     test('Load Content', async () => {
         let ctr = new TestCtr();
         ctr.$container = $('<test-ctr></test-ctr>');
-        const ajaxSpy = jest.spyOn($, 'ajax');
-        ajaxSpy.mockImplementation(()=> {
-            return Promise.resolve('<div></div>');
-        });
         let files = await sdc_view.loadFilesFromController(ctr);
         expect(ajaxSpy).toBeCalledWith({
             type: 'get',
@@ -72,6 +69,19 @@ describe('Controller', () => {
         });
 
         expect(files[0]).toStrictEqual(document.createElement('div'));
+    });
+
+    test('register', async () => {
+        app.register(TestCtr).addMixin('test-ctr-a');
+        app.register(TestCtrA);
+        const $body = $('body');
+        const $ctr_div = $(document.createElement('test-ctr'));
+        $body.append($ctr_div);
+        await app.init_sdc();
+        expect($ctr_div.find('div').length).toBe(1)
+        let testCtr = app.rootController._childController.testCtr[0]
+        expect(testCtr.sayA()).toBe('A');
+        expect(testCtr.sayB()).toBe('B');
     });
 
     test('basics', () => {
