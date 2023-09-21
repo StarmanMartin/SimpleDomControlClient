@@ -6,7 +6,7 @@ module.exports = {experiments: {
 
     output: {
         path: path.resolve('dist'),
-        filename: "index.js",
+        filename: "[name].js",
         library: {
             type: "module",
         },
