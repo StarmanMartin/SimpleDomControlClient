@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "build": "gulp",
-    "test": "gulp & NODE_OPTIONS=--experimental-vm-modules  jest"
+    "build": "gulp development",
+    "test": "gulp development & NODE_OPTIONS=--experimental-vm-modules  jest"
   },
   "repository": {
     "type": "git",
