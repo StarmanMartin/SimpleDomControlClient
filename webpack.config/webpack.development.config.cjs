@@ -11,4 +11,6 @@ let dev_conf = {
     ]
 };
 
+default_conf.output.filename = "dev.[name].js"
+
 module.exports = _.merge(default_conf, dev_conf);
