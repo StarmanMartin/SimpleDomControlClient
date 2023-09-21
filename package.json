@@ -1,6 +1,6 @@
 {
   "name": "sdc",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Simple Dom Control",
   "main": "dist/index.js",
   "type": "module",
@@ -13,7 +13,12 @@
     "url": "https://github.com/StarmanMartin/SimpleDomControl.git"
   },
   "keywords": [
-    "MVVC"
+    "Model-View-Controller",
+    "(MVC)",
+    "Model-View-ViewModel",
+    "(MVVM)",
+    "Model-View-Template",
+    "(MVT)"
   ],
   "author": "Martin Starman",
   "license": "Apache License 2.0",
