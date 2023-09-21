@@ -90,7 +90,7 @@ const copyProps = (targetClass, sourceClass) => {
 export function agileAggregation(baseClass, ...mixins) {
 
     let base = class _Combined {
-        constructor(...args) {
+        constructor(..._args) {
             let _mixins = {};
             mixins.forEach((mixin) => {
                 let newMixin;

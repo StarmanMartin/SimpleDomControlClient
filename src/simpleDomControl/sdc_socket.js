@@ -713,7 +713,7 @@ export class Model {
             this.socket.onclose = (e) => {
                 console.error(`SDC Model (${this.model_name}, ${this.model_id}) Socket closed unexpectedly`);
                 this._is_connected = false;
-                for (const [key, value] of Object.entries(this.open_request)) {
+                for (const [_key, value] of Object.entries(this.open_request)) {
                     value[1](e);
                 }
                 this.open_request = {};
