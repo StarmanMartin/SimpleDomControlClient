@@ -8,14 +8,18 @@ import * as sdc_view from '../src/simpleDomControl/sdc_view.js';
 
 const app = sdc.app;
 
-import {jest} from '@jest/globals'
 import $ from 'jquery';
 window.$ = $;
+
+const TestControllerInfo = {
+    name: 'TestCtr',
+    tag: 'test-ctr'
+};
 
 class TestCtr extends sdc.AbstractSDC {
     constructor() {
         super();
-        this.contentUrl = 'TestCtr'; //<test-ctr>
+        this.contentUrl = TestControllerInfo.name; //<test-ctr>
         this.events.unshift({});
         this.val = 0;
         this.contentReload = true;

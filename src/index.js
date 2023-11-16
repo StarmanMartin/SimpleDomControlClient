@@ -4,10 +4,12 @@ import {on, trigger, allOff, setEvent} from './simpleDomControl/sdc_events.js';
 import {clearErrorsInForm, setErrorsInForm, checkIfParamNumberBoolOrString} from './simpleDomControl/sdc_utils.js';
 import {controllerFactory, runControlFlowFunctions} from './simpleDomControl/sdc_controller.js';
 import {close} from './simpleDomControl/sdc_socket.js'
+import {get_controller} from './simpleDomControl/sdc_test_utils.js'
 
 const socketReconnect = close
+const test_utils = {get_controller};
 
 export {
     app, AbstractSDC, on, trigger, allOff, setEvent, clearErrorsInForm, setErrorsInForm, checkIfParamNumberBoolOrString,
-    controllerFactory, runControlFlowFunctions, socketReconnect
+    controllerFactory, runControlFlowFunctions, socketReconnect, test_utils
 }

@@ -3,16 +3,14 @@
  */
 
 
-import * as sdc from '../dist/index.js';
+import {app, AbstractSDC, setEvent, on, allOff, trigger} from '../dist/index.js';
 import * as sdc_view from '../src/simpleDomControl/sdc_view.js';
 
-const app = sdc.app;
 
-import {jest} from '@jest/globals'
 import $ from 'jquery';
 window.$ = $;
 
-class TestCtr extends sdc.AbstractSDC {
+class TestCtr extends AbstractSDC {
     constructor() {
         super();
         this.contentUrl = 'TestCtr'; //<test-ctr>
@@ -28,7 +26,7 @@ class TestCtr extends sdc.AbstractSDC {
     onInit() {}
 }
 
-class TestCtrA extends sdc.AbstractSDC {
+class TestCtrA extends AbstractSDC {
     constructor() {
         super();
         this.contentUrl = 'TestCtrA'; //<test-ctr-a>
@@ -108,15 +106,15 @@ describe('Controller', () => {
         }
         let a = new Test();
 
-        sdc.setEvent('test');
-        sdc.setEvent('test', 'abc');
-        sdc.on('test', new Test());
-        sdc.on('test', a);
-        let res = await sdc.trigger('test', 1);
+        setEvent('test');
+        setEvent('test', 'abc');
+        on('test', new Test());
+        on('test', a);
+        let res = await trigger('test', 1);
         expect(val).toBe(1);
         expect(res.length).toBe(2);
-        sdc.allOff(a);
-        let res_new = await sdc.trigger('test', 1);
+        allOff(a);
+        let res_new = await trigger('test', 1);
         expect(res_new).toStrictEqual([1]);
     });
 
