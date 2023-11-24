@@ -26,36 +26,39 @@ export let app = {
     tagNames: [],
     Global: Global,
     rootController: null,
+    _isInit: false,
 
 
     init_sdc: () => {
-        const old_trigger = $.fn.trigger;
-        $.fn.trigger = function (event) {
-            const ev_type = {}.hasOwnProperty.call(event, "type") ? event.type : event;
-            if (!STD_EVENT_LIST.includes(ev_type)) {
-                STD_EVENT_LIST.push(ev_type);
-                $(window).on(ev_type, windowEventHandler);
+        if(!app._isInit) {
+            app._isInit = true;
+            const old_trigger = $.fn.trigger;
+            $.fn.trigger = function (event) {
+                const ev_type = {}.hasOwnProperty.call(event, "type") ? event.type : event;
+                if (!STD_EVENT_LIST.includes(ev_type)) {
+                    STD_EVENT_LIST.push(ev_type);
+                    $(window).on(ev_type, windowEventHandler);
+                }
+                return old_trigger.call(this, event);
             }
-            return old_trigger.call(this, event);
-        }
 
-        $.fn.safeReplace = function ($elem) {
-            return app.safeReplace($(this), $elem);
-        }
-        $.fn.safeEmpty = function () {
-            return app.safeEmpty($(this));
-        }
-        $.fn.safeRemove = function () {
-            return app.safeRemove($(this));
-        }
+            $.fn.safeReplace = function ($elem) {
+                return app.safeReplace($(this), $elem);
+            }
+            $.fn.safeEmpty = function () {
+                return app.safeEmpty($(this));
+            }
+            $.fn.safeRemove = function () {
+                return app.safeRemove($(this));
+            }
 
-        isConnected();
+            isConnected();
 
-        initEvents();
+            initEvents();
 
-        app.rootController = app.rootController || new AbstractSDC();
+            app.rootController = app.rootController || new AbstractSDC();
+        }
         app.tagNames = Object.keys(controllerList);
-
         return replaceTagElementsInContainer(app.tagNames, getBody(), app.rootController);
     },
 
