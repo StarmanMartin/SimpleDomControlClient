@@ -1,5 +1,5 @@
 {
-  "name": "sdc",
+  "name": "sdc_client",
   "version": "0.3.7",
   "description": "Simple Dom Control",
   "main": "dist/index.js",
@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/StarmanMartin/SimpleDomControl.git"
+    "url": "https://github.com/StarmanMartin/SimpleDomControlClient"
   },
   "keywords": [
     "Model-View-Controller",
