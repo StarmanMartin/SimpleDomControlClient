@@ -5,6 +5,9 @@ import {runOnInitWithParameter} from "./sdc_params.js";
 
 export let Global = {};
 export let controllerList = {};
+export function tagList() {
+    return Object.keys(controllerList);
+}
 
 
 function prepareMixins(superTagNameList, tagName) {
@@ -172,12 +175,20 @@ export function runControlFlowFunctions(controller) {
         .then(function ($html) {
             return runControllerShow(controller, $html);
         }).then(() => {
-            return controller.refresh && controller.refresh();
+            return runRefresh(controller);
         });
 
     if (controller.load_async) {
         return Promise.resolve();
     }
 
-    return prom_controller
+    return prom_controller;
+}
+
+/**
+ *
+ * @param {AbstractSDC} controller
+ */
+export function runRefresh(controller) {
+    return controller.refresh && controller.refresh();
 }

@@ -592,6 +592,12 @@ export class Model {
         }
     }
 
+    clean() {
+        this.values_list = [];
+        this.values = {};
+        return this;
+    }
+
     _readFiles(elem) {
         let to_solve = [];
         let files = {}

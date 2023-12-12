@@ -9,14 +9,55 @@ import {
     replaceTagElementsInContainer,
     reloadHTMLController,
     DATA_CONTROLLER_KEY,
-    CONTROLLER_CLASS, getController, cleanCache
+    CONTROLLER_CLASS, getController, cleanCache, reloadMethodHTML
 } from "./sdc_view.js";
 import {AbstractSDC} from "./AbstractSDC.js";
-import {Global, controllerList} from "./sdc_controller.js";
+import {Global, controllerList, tagList} from "./sdc_controller.js";
 import {initEvents, setControllerEvents, STD_EVENT_LIST, windowEventHandler} from "./sdc_dom_events.js";
 import {trigger} from "./sdc_events.js";
 import {isConnected} from "./sdc_socket.js";
 
+
+let sdcDomFragment = function (element, props) {
+    let $new_elem, is_self = false;
+    if (typeof element === 'string') {
+        $new_elem = $(document.createElement(element));
+    } else {
+        const tagName = `this.${element.name}`;
+        $new_elem = $(document.createElement(tagName));
+        $new_elem.data('handler', element);
+        is_self = true
+    }
+
+
+    if (props) {
+        Object.entries(props).forEach(([k, v]) => {
+            if (k.startsWith('on')) {
+                $new_elem[0].addEventListener(k.substring(2).toLowerCase(), v);
+            } else {
+                $new_elem[0].setAttribute(k, v);
+            }
+        });
+    }
+
+    if (is_self) {
+        $new_elem.addClass('_bind_to_update_handler _with_handler');
+    }
+
+    return $new_elem;
+}
+
+window.sdcDom = function (tagName, props, ...children) {
+    if(!tagName) {
+        return '';
+    }
+    const $new_elem = sdcDomFragment(tagName, props);
+    for (const c of children) {
+        $new_elem.append(c);
+    }
+    return $new_elem;
+
+}
 
 export let app = {
     CSRF_TOKEN: window.CSRF_TOKEN || '',
@@ -30,7 +71,7 @@ export let app = {
 
 
     init_sdc: () => {
-        if(!app._isInit) {
+        if (!app._isInit) {
             app._isInit = true;
             const old_trigger = $.fn.trigger;
             $.fn.trigger = function (event) {
@@ -58,7 +99,7 @@ export let app = {
 
             app.rootController = app.rootController || new AbstractSDC();
         }
-        app.tagNames = Object.keys(controllerList);
+        app.tagNames = tagList();
         return replaceTagElementsInContainer(app.tagNames, getBody(), app.rootController);
     },
 
@@ -298,11 +339,14 @@ export let app = {
         }
 
         return replaceTagElementsInContainer(app.tagNames, leafController.$container, leafController).then(() => {
+            reloadMethodHTML(leafController).then(() => {
+                for (let con of controllerList) {
+                    setControllerEvents(con);
+                }
 
-            for (let con of controllerList) {
-                setControllerEvents(con);
-                con.onRefresh($container);
-            }
+                leafController.onRefresh($container);
+            });
+
         });
     },
 };

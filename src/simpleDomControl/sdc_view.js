@@ -1,4 +1,4 @@
-import {controllerFactory, runControlFlowFunctions} from "./sdc_controller.js";
+import {controllerFactory, runControlFlowFunctions, tagList} from "./sdc_controller.js";
 import {getUrlParam} from "./sdc_params.js";
 import {app} from "./sdc_main.js";
 import {trigger} from "./sdc_events.js";
@@ -16,6 +16,7 @@ export const CONTROLLER_CLASS = '_sdc_controller_';
 export function cleanCache() {
     htmlFiles = {};
 }
+
 /**
  * findSdcTgs Finds all registered tags in a container. But it ignores
  * registered tags in registered tags. It collects all those
@@ -24,9 +25,10 @@ export function cleanCache() {
  *
  * @param {jquery} $container - jQuery container
  * @param {Array<string>} tagNameList - a string list with tag names.
+ * @param {AbstractSDC} parentController - controller in surrounding
  * @return {Array} - a array of objects with all register tags found
  */
-function findSdcTgs($container, tagNameList) {
+function findSdcTgs($container, tagNameList, parentController) {
     if (!$container) {
         return [];
     }
@@ -42,8 +44,10 @@ function findSdcTgs($container, tagNameList) {
                 dom: $element
             });
 
+        } else if (tagName[0].startsWith('this.')) {
+            $element.addClass(`_bind_to_update_handler sdc_uuid_${parentController._uuid}`)
         } else {
-            emptyList = emptyList.concat(findSdcTgs($element, tagNameList))
+            emptyList = emptyList.concat(findSdcTgs($element, tagNameList, parentController))
         }
     });
 
@@ -93,7 +97,7 @@ function loadHTMLFile(path, args, tag, hardReload) {
     args._method = 'content';
 
     return $.get(path, args).then(function (data) {
-        if(data.status === "redirect") {
+        if (data.status === "redirect") {
             trigger('onNavLink', data['url-link']);
             return "<sdc-error data-code='403'></sdc-error>";
         }
@@ -265,14 +269,14 @@ export function runControllerFillContent(controller, $html) {
  * Afterwards it starts the life cycle of the controller. I the next step it starts the
  * procedure for the child elements of the controller tag.
  *
- * @param tagList - list of all registered tags
- * @param $container - jQuery container to find the tags
- * @param parentController - controller in surrounding
+ * @param {Array<string>} tagList - list of all registered tags
+ * @param {jquery} $container - jQuery container to find the tags
+ * @param {AbstractSDC} parentController - controller in surrounding
  */
 export function replaceTagElementsInContainer(tagList, $container, parentController) {
     return new Promise((resolve) => {
 
-        let tagDescriptionElements = findSdcTgs($container, tagList);
+        let tagDescriptionElements = findSdcTgs($container, tagList, parentController);
         let tagCount = tagDescriptionElements.length;
 
         if (tagCount === 0) {
@@ -291,4 +295,44 @@ export function replaceTagElementsInContainer(tagList, $container, parentControl
             });
         }
     });
+}
+
+export function reloadMethodHTML(controller) {
+    return _reloadMethodHTML(controller, controller.$container)
+}
+function _reloadMethodHTML(controller, $dom) {
+    const plist = [];
+
+    $dom.find(`._bind_to_update_handler.sdc_uuid_${controller._uuid}`).each(function () {
+        const $this = $(this);
+        let result = undefined;
+        if($this.hasClass(`_with_handler`)) {
+            result = $this.data('handler');
+        } else {
+            let controller_handler = this.tagName.toLowerCase().replace(/^this./, '');
+            if (controller[controller_handler]) {
+                result = controller[controller_handler];
+            }
+        }
+
+        if (result !== undefined) {
+            if (typeof result === 'function') {
+                result = result.bind(controller)($this.data());
+            }
+
+            plist.push(Promise.resolve(result).then((x) => {
+                const $new_content = $(`<div></div>`);
+                $new_content.append(x);
+                return replaceTagElementsInContainer(tagList(), $new_content, controller).then(()=> {
+                    return _reloadMethodHTML(controller, $new_content).then(()=> {
+                        $this.safeEmpty().text('').append(x);
+                        return true;
+                    });
+                });
+            }));
+        }
+
+    });
+
+    return Promise.all(plist);
 }
