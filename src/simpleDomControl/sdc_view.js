@@ -97,18 +97,20 @@ function loadHTMLFile(path, args, tag, hardReload) {
     args._method = 'content';
 
     return $.get(path, args).then(function (data) {
-        if (data.status === "redirect") {
-            trigger('onNavLink', data['url-link']);
-            return "<sdc-error data-code='403'></sdc-error>";
-        }
         if (!hardReload) {
             htmlFiles[tag] = data;
         }
 
         return data;
     }).catch(function (err) {
-        console.error(err);
-        return err.responseText;
+        trigger('navLoaded', {'controller_name': ()=> err.status});
+        if (err.status === 301) {
+            const data = err.responseJSON;
+            trigger('onNavLink', data['url-link']);
+            throw "<sdc-error data-code='403'></sdc-error>";
+        }
+
+        throw `<sdc-error data-code="${err.status}">${err.responseText}</sdc-error>`;
     });
 }
 
@@ -193,8 +195,6 @@ export function loadFilesFromController(controller) {
         }
 
         return null;
-    }).catch(function (err) {
-        console.error("loadFiles-catch", err);
     });
 }
 

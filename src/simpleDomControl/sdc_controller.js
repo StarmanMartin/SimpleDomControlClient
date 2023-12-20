@@ -32,7 +32,7 @@ function prepareMixins(superTagNameList, tagName) {
 
 /**
  * setParentController sets the parent controller as property: 'parentController'
- * to the child controller. Also it adds the child controller to the property list:
+ * to the child controller. Also, it adds the child controller to the property list:
  * 'parentController' to the parent controller
  *
  * @param {AbstractSDC} parentController - js controller instance, controller of the parent DOM of the controllers DOM
@@ -176,6 +176,8 @@ export function runControlFlowFunctions(controller) {
             return runControllerShow(controller, $html);
         }).then(() => {
             return runRefresh(controller);
+        }).catch(function ($html) {
+            return runControllerFillContent(controller, $html);
         });
 
     if (controller.load_async) {

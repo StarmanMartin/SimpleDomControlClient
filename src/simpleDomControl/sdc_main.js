@@ -48,7 +48,7 @@ let sdcDomFragment = function (element, props) {
 }
 
 window.sdcDom = function (tagName, props, ...children) {
-    if(!tagName) {
+    if (!tagName) {
         return '';
     }
     const $new_elem = sdcDomFragment(tagName, props);
@@ -212,22 +212,36 @@ export let app = {
 
     submitFormAndUpdateView: (controller, form, url, method) => {
         let formData = new FormData(form);
+        const redirector = (a)=> {
+            if (a['url-link']) {
+                trigger('onNavLink', a['url-link']);
+            } else {
+                window.location.href = a['url'];
+            }
+
+        }
+
         const p = new Promise((resolve, reject) => {
             uploadFileFormData(formData, (url || form.action), (method || form.method))
                 .then((a, b, c) => {
                     resolve(a, b, c);
                     if (a.status === 'redirect') {
-                        if (a['url-link']) {
-                            trigger('onNavLink', a['url-link']);
-                        } else {
-                            window.location.href = a['url'];
-                        }
+                        redirector(a);
                     } else {
                         p.then(() => {
                             app.refresh(controller.$container);
                         });
                     }
-                }).catch(reject);
+                })
+                .catch((a,b,c) => {
+                    if(a.status === 301) {
+                        a = a.responseJSON;
+                        redirector(a);
+                        resolve(a, b, c);
+                    }else {
+                        reject(a, b, c);
+                    }
+                });
         });
 
         return p;

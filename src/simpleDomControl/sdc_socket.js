@@ -483,22 +483,25 @@ export class Model {
             elem_list.forEach((elem) => {
                 const id = uuidv4();
                 p_list.push(new Promise((resolve, reject) => {
-                    this.socket.send(JSON.stringify({
-                        event: 'model',
-                        event_type: 'save',
-                        event_id: id,
-                        args: {
-                            model_name: this.model_name,
-                            model_query: this.model_query,
-                            data: elem
-                        }
-                    }));
+                    this._readFiles(values).then((files) => {
+                        this.socket.send(JSON.stringify({
+                            event: 'model',
+                            event_type: 'save',
+                            event_id: id,
+                            args: {
+                                model_name: this.model_name,
+                                model_query: this.model_query,
+                                data: elem,
+                                files: files
+                            }
+                        }));
 
-                    this.open_request[id] = [(res) => {
-                        let data = JSON.parse(res.data.instance);
-                        this._parseServerRes(data);
-                        resolve(res);
-                    }, reject];
+                        this.open_request[id] = [(res) => {
+                            let data = JSON.parse(res.data.instance);
+                            this._parseServerRes(data);
+                            resolve(res);
+                        }, reject];
+                    });
                 }));
             });
 
