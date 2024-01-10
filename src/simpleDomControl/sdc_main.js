@@ -15,8 +15,9 @@ import {AbstractSDC} from "./AbstractSDC.js";
 import {Global, controllerList, tagList} from "./sdc_controller.js";
 import {initEvents, setControllerEvents, STD_EVENT_LIST, windowEventHandler} from "./sdc_dom_events.js";
 import {trigger} from "./sdc_events.js";
-import {isConnected} from "./sdc_socket.js";
+import {isConnected, close} from "./sdc_socket.js";
 
+const PROPERTIES_UPDATE = {'classname': 'class'}
 
 let sdcDomFragment = function (element, props) {
     let $new_elem, is_self = false;
@@ -35,6 +36,9 @@ let sdcDomFragment = function (element, props) {
             if (k.startsWith('on')) {
                 $new_elem[0].addEventListener(k.substring(2).toLowerCase(), v);
             } else {
+                if(PROPERTIES_UPDATE[k.toLowerCase()]) {
+                    k = PROPERTIES_UPDATE[k.toLowerCase()];
+                }
                 $new_elem[0].setAttribute(k, v);
             }
         });
@@ -68,29 +72,25 @@ export let app = {
     Global: Global,
     rootController: null,
     _isInit: false,
-
+    _origin_trigger: null,
 
     init_sdc: () => {
         if (!app._isInit) {
             app._isInit = true;
-            const old_trigger = $.fn.trigger;
-            $.fn.trigger = function (event) {
-                const ev_type = {}.hasOwnProperty.call(event, "type") ? event.type : event;
-                if (!STD_EVENT_LIST.includes(ev_type)) {
-                    STD_EVENT_LIST.push(ev_type);
-                    $(window).on(ev_type, windowEventHandler);
+            if (!app._origin_trigger) {
+                app._origin_trigger = $.fn.trigger;
+                $.fn.trigger = function (event) {
+                    const ev_type = {}.hasOwnProperty.call(event, "type") ? event.type : event;
+                    if (!STD_EVENT_LIST.includes(ev_type)) {
+                        STD_EVENT_LIST.push(ev_type);
+                        $(window).on(ev_type, windowEventHandler);
+                    }
+                    return app._origin_trigger.call(this, event);
                 }
-                return old_trigger.call(this, event);
-            }
 
-            $.fn.safeReplace = function ($elem) {
-                return app.safeReplace($(this), $elem);
-            }
-            $.fn.safeEmpty = function () {
-                return app.safeEmpty($(this));
-            }
-            $.fn.safeRemove = function () {
-                return app.safeRemove($(this));
+                app.updateJquery();
+            }else {
+                close();
             }
 
             isConnected();
@@ -101,6 +101,18 @@ export let app = {
         }
         app.tagNames = tagList();
         return replaceTagElementsInContainer(app.tagNames, getBody(), app.rootController);
+    },
+
+    updateJquery: ()=> {
+        $.fn.safeReplace = function ($elem) {
+            return app.safeReplace($(this), $elem);
+        }
+        $.fn.safeEmpty = function () {
+            return app.safeEmpty($(this));
+        }
+        $.fn.safeRemove = function () {
+            return app.safeRemove($(this));
+        }
     },
 
     controllerToTag: (Controller) => {
@@ -115,9 +127,10 @@ export let app = {
     registerGlobal: (Controller) => {
         let tagName = app.controllerToTag(Controller);
         let globalController = new Controller();
+        globalController.$container = getBody();
         controllerList[tagName] = [globalController, []];
         globalController._tagName = tagName;
-        Global[tagNameToCamelCase(tagName)] = globalController;
+        window[tagNameToCamelCase(tagName)] = Global[tagNameToCamelCase(tagName)] = globalController;
     },
 
     cleanCache: () => {

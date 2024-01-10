@@ -107,7 +107,7 @@ function loadHTMLFile(path, args, tag, hardReload) {
         if (err.status === 301) {
             const data = err.responseJSON;
             trigger('onNavLink', data['url-link']);
-            throw "<sdc-error data-code='403'></sdc-error>";
+            throw "<sdc-error data-code='301'></sdc-error>";
         }
 
         throw `<sdc-error data-code="${err.status}">${err.responseText}</sdc-error>`;
@@ -191,7 +191,11 @@ export function loadFilesFromController(controller) {
     ]).then(function (results) {
         let htmlFile = results[0];
         if (htmlFile) {
-            return $(htmlFile);
+            try {
+                return $(htmlFile);
+            } catch {
+                return $('<div></div>').append(htmlFile);
+            }
         }
 
         return null;

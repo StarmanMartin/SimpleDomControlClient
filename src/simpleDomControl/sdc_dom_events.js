@@ -58,7 +58,7 @@ export function windowEventHandler(event) {
 export function initEvents() {
     const $window = $(window);
     STD_EVENT_LIST.forEach(ev_type => {
-        $window.on(ev_type, windowEventHandler);
+        $window.off(ev_type).on(ev_type, windowEventHandler);
     });
 }
 

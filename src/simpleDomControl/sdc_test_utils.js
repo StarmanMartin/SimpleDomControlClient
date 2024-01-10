@@ -3,7 +3,6 @@
  */
 
 import {app} from './sdc_main.js';
-import {getBody} from "./sdc_utils.js";
 let spy, _originAjax;
 
 /**
@@ -31,8 +30,10 @@ export async function get_controller( tag_name, init_arguments = {}, origen_html
             });
         });
     }
+    const $body = $('body');
+    app.updateJquery();
 
-    getBody().empty();
+    $body.safeEmpty();
 
     const $controller = $(`<${tag_name}>${origen_html}</${tag_name}>`);
     for (const [key, value] of Object.entries(init_arguments)) {
@@ -40,7 +41,9 @@ export async function get_controller( tag_name, init_arguments = {}, origen_html
     }
     const $divContainer = $('<div></div>').append($controller);
 
-    getBody().append($divContainer);
+    $body.append($divContainer);
+    app._isInit = false;
+    app.cleanCache();
     await app.init_sdc();
     return app.getController($controller);
 }

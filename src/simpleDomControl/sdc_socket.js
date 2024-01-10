@@ -22,7 +22,7 @@ export function callServer(app, controller, funcName, args) {
         }));
     });
 
-    return new Promise((resolve, reject)=> {
+    return new Promise((resolve, reject) => {
         OPEN_REQUESTS[id] = [resolve, reject];
     });
 }
@@ -40,16 +40,16 @@ function _connect() {
         SDC_SOCKET.onmessage = function (e) {
             let data = JSON.parse(e.data);
             if (data.is_error) {
-                if (app.Global.sdcAlertMessenger && (data.msg || data.header)) {
-                    app.Global.sdcAlertMessenger.pushErrorMsg(data.header || '', data.msg || '');
+                if (data.msg || data.header) {
+                    trigger('pushErrorMsg', data.header || '', data.msg || '');
                 }
                 if (OPEN_REQUESTS[data.id]) {
-                    OPEN_REQUESTS[data.id][1](data.data);
+                    OPEN_REQUESTS[data.id][1](data.data || null);
                     delete OPEN_REQUESTS[data.id];
                 }
             } else {
-                if (app.Global.sdcAlertMessenger && (data.msg || data.header)) {
-                    app.Global.sdcAlertMessenger.pushMsg(data.header || '', data.msg || '');
+                if (data.msg || data.header) {
+                    trigger('pushMsg', data.header || '', data.msg || '');
                 }
 
                 if (data.type && data.type === 'sdc_recall') {
@@ -70,7 +70,9 @@ function _connect() {
         };
 
         SDC_SOCKET.onclose = function () {
-            console.error('SDC Socket closed unexpectedly');
+            if(IS_CONNECTED) {
+                console.error('SDC Socket closed unexpectedly');
+            }
             IS_CONNECTED = false;
             for (const [key, value] of Object.entries(OPEN_REQUESTS)) {
                 value[1]({});
@@ -121,7 +123,6 @@ function parse_hidden_inputs(value) {
     let isStringReg = /^(['][^']*['])|(["][^"]*["])$/;
 
 
-
     if (value.toLowerCase().match(isBoolReg)) {
         return value.toLowerCase() === 'true';
     } else if (value === 'undefined') {
@@ -144,8 +145,8 @@ export function isConnected() {
         if (IS_CONNECTED) {
             return resolve();
         } else if (IS_CONNECTING) {
-            setTimeout(()=>{
-                isConnected().then(()=>{
+            setTimeout(() => {
+                isConnected().then(() => {
                     resolve();
                 });
             }, 200);
@@ -180,16 +181,20 @@ export class Model {
     }
 
     [Symbol.iterator]() {
-        let idx = 0;
+        let idx = -1;
         return {
-            next: function () {
-                if (idx < this.values_list) {
-                    ++idx;
+            next: () => {
+                ++idx;
+                if (idx < this.values_list.length) {
                     return {value: this.values_list[idx], done: false};
                 }
                 return {value: null, done: true};
             }
         };
+    }
+
+    length() {
+        return this.values_list.length;
     }
 
     byPk(pk) {
@@ -233,28 +238,24 @@ export class Model {
         let $div_list = $('<div class="container-fluid">');
         this.isConnected().then(() => {
             const id = uuidv4();
-            new Promise((resolve, reject) => {
-                this.socket.send(JSON.stringify({
-                    event: 'model',
-                    event_type: 'list_view',
-                    event_id: id,
-                    args: {
-                        model_name: this.model_name,
-                        model_query: this.model_query,
-                        filter: filter
-                    }
-                }));
+            this.socket.send(JSON.stringify({
+                event: 'model',
+                event_type: 'list_view',
+                event_id: id,
+                args: {
+                    model_name: this.model_name,
+                    model_query: this.model_query,
+                    filter: filter
+                }
+            }));
 
-                this.open_request[id] = [(data) => {
-                    $div_list.append(data.html);
-                    app.refresh($div_list);
-                    cb_resolve && cb_resolve(data);
-                    resolve(data);
-                }, (res) => {
-                    cb_reject && cb_reject(res);
-                    reject(res)
-                }];
-            });
+            this.open_request[id] = [(data) => {
+                $div_list.append(data.html);
+                app.refresh($div_list);
+                cb_resolve && cb_resolve(data);
+            }, (res) => {
+                cb_reject && cb_reject(res);
+            }];
 
         });
 
@@ -276,28 +277,24 @@ export class Model {
                 pk = this.values_list[0].pk
             }
             const id = uuidv4();
-            new Promise((resolve, reject) => {
-                this.socket.send(JSON.stringify({
-                    event: 'model',
-                    event_type: 'detail_view',
-                    event_id: id,
-                    args: {
-                        model_name: this.model_name,
-                        model_query: this.model_query,
-                        pk: pk
-                    }
-                }));
+            this.socket.send(JSON.stringify({
+                event: 'model',
+                event_type: 'detail_view',
+                event_id: id,
+                args: {
+                    model_name: this.model_name,
+                    model_query: this.model_query,
+                    pk: pk
+                }
+            }));
 
-                this.open_request[id] = [(data) => {
-                    $div_list.append(data.html);
-                    app.refresh($div_list);
-                    cb_resolve && cb_resolve(data);
-                    resolve(data);
-                }, (res) => {
-                    cb_reject && cb_reject(res);
-                    reject(res)
-                }];
-            });
+            this.open_request[id] = [(data) => {
+                $div_list.append(data.html);
+                app.refresh($div_list);
+                cb_resolve && cb_resolve(data);
+            }, (res) => {
+                cb_reject && cb_reject(res);
+            }];
 
         });
 
@@ -327,7 +324,7 @@ export class Model {
                         form_item.checked = instance[name];
                     } else if (form_item.type === 'file' && instance[name] instanceof File) {
                         let container = new DataTransfer();
-                        container.items.add(file);
+                        container.items.add(instance[name]);
                         form_item.files = container;
                     } else {
                         $(form_item).val(instance[name]);
@@ -355,7 +352,7 @@ export class Model {
                 if (name && name !== '') {
                     if (form_item.type === 'hidden') {
                         instance[name] = parse_hidden_inputs($(form_item).val());
-                    } else  if (form_item.type === 'checkbox') {
+                    } else if (form_item.type === 'checkbox') {
                         instance[name] = form_item.checked;
                     } else if (form_item.type === 'file') {
                         instance[name] = form_item.files[0];
@@ -381,32 +378,28 @@ export class Model {
         let $div_form = $('<div class="container-fluid">');
         this.isConnected().then(() => {
             const id = uuidv4();
-            new Promise((resolve, reject) => {
-                this.socket.send(JSON.stringify({
-                    event: 'model',
-                    event_type: 'create_form',
-                    event_id: id,
-                    args: {
-                        model_name: this.model_name,
-                        model_query: this.model_query
-                    }
-                }));
+            this.socket.send(JSON.stringify({
+                event: 'model',
+                event_type: 'create_form',
+                event_id: id,
+                args: {
+                    model_name: this.model_name,
+                    model_query: this.model_query
+                }
+            }));
 
-                this.open_request[id] = [(data) => {
-                    $div_form.append(data.html);
-                    let $form = $div_form.closest('form').addClass(`sdc-model-create-form sdc-model-form ${this.form_id}`).data('model', this).data('model_pk', null);
-                    if (!$form[0].hasAttribute('sdc_submit')) {
-                        $form.attr('sdc_submit', 'submitModelForm')
-                    }
+            this.open_request[id] = [(data) => {
+                $div_form.append(data.html);
+                let $form = $div_form.closest('form').addClass(`sdc-model-create-form sdc-model-form ${this.form_id}`).data('model', this).data('model_pk', null);
+                if (!$form[0].hasAttribute('sdc_submit')) {
+                    $form.attr('sdc_submit', 'submitModelForm')
+                }
 
-                    app.refresh($div_form);
-                    cb_resolve && cb_resolve(data);
-                    resolve(data);
-                }, (res) => {
-                    cb_reject && cb_reject(res);
-                    reject(res)
-                }];
-            });
+                app.refresh($div_form);
+                cb_resolve && cb_resolve(data);
+            }, (res) => {
+                cb_reject && cb_reject(res);
+            }];
 
         });
 
@@ -429,34 +422,29 @@ export class Model {
             }
 
             const id = uuidv4();
-            new Promise((resolve, reject) => {
-                this.socket.send(JSON.stringify({
-                    event: 'model',
-                    event_type: 'edit_form',
-                    event_id: id,
-                    args: {
-                        model_name: this.model_name,
-                        model_query: this.model_query,
-                        pk: pk
-                    }
-                }));
+            this.socket.send(JSON.stringify({
+                event: 'model',
+                event_type: 'edit_form',
+                event_id: id,
+                args: {
+                    model_name: this.model_name,
+                    model_query: this.model_query,
+                    pk: pk
+                }
+            }));
 
-                this.open_request[id] = [(data) => {
-                    $div_form.append(data.html);
-                    let $form = $div_form.closest('form').addClass(`sdc-model-edit-form sdc-model-form ${this.form_id}`).data('model', this).data('model_pk', pk);
-                    if (!$form[0].hasAttribute('sdc_submit')) {
-                        $form.attr('sdc_submit', 'submitModelForm')
-                    }
+            this.open_request[id] = [(data) => {
+                $div_form.append(data.html);
+                let $form = $div_form.closest('form').addClass(`sdc-model-edit-form sdc-model-form ${this.form_id}`).data('model', this).data('model_pk', pk);
+                if (!$form[0].hasAttribute('sdc_submit')) {
+                    $form.attr('sdc_submit', 'submitModelForm')
+                }
 
-                    app.refresh($div_form);
-                    cb_resolve && cb_resolve(data);
-                    resolve(data);
-                }, (res) => {
-                    cb_reject && cb_reject(res);
-                    reject(res)
-                }];
-            });
-
+                app.refresh($div_form);
+                cb_resolve && cb_resolve(data);
+            }, (res) => {
+                cb_reject && cb_reject(res);
+            }];
         });
 
         return $div_form;
@@ -483,7 +471,7 @@ export class Model {
             elem_list.forEach((elem) => {
                 const id = uuidv4();
                 p_list.push(new Promise((resolve, reject) => {
-                    this._readFiles(values).then((files) => {
+                    this._readFiles(elem).then((files) => {
                         this.socket.send(JSON.stringify({
                             event: 'model',
                             event_type: 'save',
@@ -536,7 +524,7 @@ export class Model {
         });
     }
 
-    delete(pk= -1) {
+    delete(pk = -1) {
         if (pk === -1) pk = this.values?.pk
         const id = uuidv4();
         return this.isConnected().then(() => {
@@ -661,9 +649,10 @@ export class Model {
                 this.open_request[data.event_id][1](data);
                 delete this.open_request[data.event_id];
             }
-            if (app.Global.sdcAlertMessenger && (data.msg || data.header)) {
-                app.Global.sdcAlertMessenger.pushErrorMsg(data.header || '', data.msg || '');
+            if (data.msg || data.header) {
+                trigger('pushErrorMsg', data.header || '', data.msg || '');
             }
+
             if (data.type === 'connect') {
                 this.open_request['_connecting_process'][1](data);
                 delete this.open_request['_connecting_process'];
@@ -671,9 +660,11 @@ export class Model {
                 this.socket.close();
             }
         } else {
-            if (app.Global.sdcAlertMessenger && (data.msg || data.header)) {
-                app.Global.sdcAlertMessenger.pushMsg(data.header || '', data.msg || '');
+
+            if (data.msg || data.header) {
+                trigger('pushMsg', data.header || '', data.msg || '');
             }
+
             if (data.type === 'connect') {
                 this._is_connected = true;
                 this._is_conneting_process = false;
@@ -780,7 +771,7 @@ export class Model {
                 //if(v && typeof v === 'object' && v['__is_sdc_model__']) {
                 //    obj[k] = new Model(v['model'], {'pk': v['pk']})
                 //} else {
-                    obj[k] = v;
+                obj[k] = v;
                 //}
             }
 

@@ -226,12 +226,16 @@ export class AbstractSDC {
         return app.reloadController(this);
     }
 
+    submitModelForm($form, e) {
+        return this._submitModelForm($form, e);
+    }
+
     /**
      * Model Form Events
      */
 
     _submitModelForm($form, e) {
-        let p_list = []
+        let p_list = [];
         if (!this._isMixin) {
             e.stopPropagation();
             e.preventDefault();
