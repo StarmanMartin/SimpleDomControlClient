@@ -99,7 +99,13 @@ export let app = {
 
             app.rootController = app.rootController || new AbstractSDC();
         }
+
         app.tagNames = tagList();
+
+        for(let [tag, controller] in Object.entries(Global)) {
+            if(!controller.$container) Global[tag].$container = getBody();
+        }
+
         return replaceTagElementsInContainer(app.tagNames, getBody(), app.rootController);
     },
 
@@ -127,7 +133,6 @@ export let app = {
     registerGlobal: (Controller) => {
         let tagName = app.controllerToTag(Controller);
         let globalController = new Controller();
-        globalController.$container = getBody();
         controllerList[tagName] = [globalController, []];
         globalController._tagName = tagName;
         window[tagNameToCamelCase(tagName)] = Global[tagNameToCamelCase(tagName)] = globalController;
