@@ -102,7 +102,7 @@ export let app = {
 
         app.tagNames = tagList();
 
-        for(let [tag, controller] in Object.entries(Global)) {
+        for(let [tag, controller] of Object.entries(app.Global)) {
             if(!controller.$container) Global[tag].$container = getBody();
         }
 
