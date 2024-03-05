@@ -13,6 +13,13 @@ function scss() {
         .pipe(dest('../static'));
 }
 
+/**
+ * Precompiler presets properties of the sdc controller.
+ * Sets on_init argument names as _on_init_params names list
+ * as prototype property to the controller
+ *
+ * @returns {*}
+ */
 function pre_compile_javascript() {
     return src('./src/**/*.js', {follow: true})
         .pipe(through.obj(function (obj, enc, next) {
@@ -93,31 +100,28 @@ exports.sdc_watch_scss = function () {
     });
 }
 
-function webpack_series_factory(webpack_config) {
-    return series(clean, pre_compile_javascript, javascript_factory(webpack_config), clean);
+function webpack_series_factory(webpack_task) {
+    return series(clean, pre_compile_javascript, webpack_task, clean);
 }
 
 exports.sdc_webpack_series_factory = webpack_series_factory
 
-exports.sdc_watch_webpack_factory = (webpack_config) => {
+exports.sdc_watch_webpack_factory = (webpack_task) => {
     return function () {
         const watcher = chokidar.watch('./src/**/*.js', {followSymlinks: true});
 
         watcher.on('change', (a) => {
             console.log(`${a} has changed! javascript is recompiling...`);
-            webpack_series_factory(webpack_config)();
+            webpack_series_factory(webpack_task)();
         });
     };
 };
 
-exports.sdc_default_build_factory = (webpack_config) => {
-    return series(link_files, parallel(scss, webpack_series_factory(webpack_config)));
+exports.sdc_default_build_factory = (webpack_task) => {
+    return series(link_files, parallel(scss, webpack_series_factory(webpack_task)));
 };
 
 exports.sdc_scss = scss;
 exports.sdc_clean = clean;
 exports.sdc_link_files = link_files;
 exports.sdc_pre_compile_javascript = pre_compile_javascript;
-exports.sdc_javascript_factory = javascript_factory;
-
-
