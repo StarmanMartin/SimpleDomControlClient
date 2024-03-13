@@ -103,12 +103,11 @@ function loadHTMLFile(path, args, tag, hardReload) {
 
         return data;
     }).catch(function (err) {
-        trigger('navLoaded', {'controller_name': ()=> err.status});
         if (err.status === 301) {
             const data = err.responseJSON;
-            trigger('onNavLink', data['url-link']);
-            throw "<sdc-error data-code='301'></sdc-error>";
+            trigger('_RedirectOnView', data['url-link']);
         }
+        trigger('navLoaded', {'controller_name': ()=> err.status});
 
         throw `<sdc-error data-code="${err.status}">${err.responseText}</sdc-error>`;
     });

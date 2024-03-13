@@ -226,15 +226,21 @@ export class AbstractSDC {
         return app.reloadController(this);
     }
 
-    submitModelForm($form, e) {
-        return this._submitModelForm($form, e);
+    submitModelFormDistributor($form, e) {
+        if (this.hasOwnProperty('_submitModelForm') && typeof this._submitModelForm === 'function') {
+            return this._submitModelForm($form, e);
+        }
+        if (this.hasOwnProperty('submitModelForm') && typeof this.submitModelForm === 'function') {
+            return this.submitModelForm($form, e);
+        }
+        return this._fallbackSubmitModelForm($form, e);
     }
 
     /**
      * Model Form Events
      */
 
-    _submitModelForm($form, e) {
+    _fallbackSubmitModelForm($form, e) {
         let p_list = [];
         if (!this._isMixin) {
             e.stopPropagation();
@@ -244,7 +250,7 @@ export class AbstractSDC {
             for (let instance_value of values) {
                 p_list.push(new Promise((resolve, reject) => {
                     let prom;
-                    if(instance_value.pk !== null) {
+                    if (instance_value.pk !== null) {
                         prom = model.save(instance_value.pk);
                     } else {
                         prom = model.create(instance_value);

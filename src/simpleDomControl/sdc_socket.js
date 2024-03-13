@@ -392,7 +392,7 @@ export class Model {
                 $div_form.append(data.html);
                 let $form = $div_form.closest('form').addClass(`sdc-model-create-form sdc-model-form ${this.form_id}`).data('model', this).data('model_pk', null);
                 if (!$form[0].hasAttribute('sdc_submit')) {
-                    $form.attr('sdc_submit', 'submitModelForm')
+                    $form.attr('sdc_submit', 'submitModelFormDistributor')
                 }
 
                 app.refresh($div_form);
@@ -437,7 +437,7 @@ export class Model {
                 $div_form.append(data.html);
                 let $form = $div_form.closest('form').addClass(`sdc-model-edit-form sdc-model-form ${this.form_id}`).data('model', this).data('model_pk', pk);
                 if (!$form[0].hasAttribute('sdc_submit')) {
-                    $form.attr('sdc_submit', 'submitModelForm')
+                    $form.attr('sdc_submit', 'submitModelFormDistributor')
                 }
 
                 app.refresh($div_form);
