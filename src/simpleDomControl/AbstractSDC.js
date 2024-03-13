@@ -227,20 +227,19 @@ export class AbstractSDC {
     }
 
     submitModelFormDistributor($form, e) {
-        if (this.hasOwnProperty('_submitModelForm') && typeof this._submitModelForm === 'function') {
+        if (typeof this._submitModelForm === 'function') {
             return this._submitModelForm($form, e);
         }
-        if (this.hasOwnProperty('submitModelForm') && typeof this.submitModelForm === 'function') {
+        if (typeof this.submitModelForm === 'function') {
             return this.submitModelForm($form, e);
         }
-        return this._fallbackSubmitModelForm($form, e);
+        return this.defaultSubmitModelForm($form, e);
     }
 
     /**
      * Model Form Events
      */
-
-    _fallbackSubmitModelForm($form, e) {
+    defaultSubmitModelForm($form, e) {
         let p_list = [];
         if (!this._isMixin) {
             e.stopPropagation();
