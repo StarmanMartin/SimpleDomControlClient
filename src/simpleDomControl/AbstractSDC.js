@@ -98,6 +98,14 @@ export class AbstractSDC {
         }
     }
 
+    get parentController() {
+        return this._parentController;
+    }
+
+    get childController() {
+        return this._childController;
+    }
+
     onLoad() {
         return this._runLifecycle('onLoad', arguments);
     }
