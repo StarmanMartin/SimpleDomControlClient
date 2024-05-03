@@ -21,7 +21,7 @@ function scss() {
  * @returns {*}
  */
 function pre_compile_javascript() {
-    return src('./src/**/*.js', {follow: true})
+    return src(['.js', '.json'].map((x)=> `./src/**/*${x}`), {follow: true})
         .pipe(through.obj(function (obj, enc, next) {
             let srcFile = obj.path
             if (!obj.isNull() && !obj.isDirectory() && obj.isBuffer() && /.js$/.test(srcFile)) {

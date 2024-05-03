@@ -377,30 +377,7 @@ export class Model {
     createForm(cb_resolve = null, cb_reject = null) {
         let $div_form = $('<div class="container-fluid">');
         this.isConnected().then(() => {
-            const id = uuidv4();
-            this.socket.send(JSON.stringify({
-                event: 'model',
-                event_type: 'create_form',
-                event_id: id,
-                args: {
-                    model_name: this.model_name,
-                    model_query: this.model_query
-                }
-            }));
-
-            this.open_request[id] = [(data) => {
-                $div_form.append(data.html);
-                let $form = $div_form.closest('form').addClass(`sdc-model-create-form sdc-model-form ${this.form_id}`).data('model', this).data('model_pk', null);
-                if (!$form[0].hasAttribute('sdc_submit')) {
-                    $form.attr('sdc_submit', 'submitModelFormDistributor')
-                }
-
-                app.refresh($div_form);
-                cb_resolve && cb_resolve(data);
-            }, (res) => {
-                cb_reject && cb_reject(res);
-            }];
-
+            this._getForm(null, 'create_form', null, $div_form, cb_resolve, cb_reject);
         });
 
         return $div_form;
@@ -421,33 +398,62 @@ export class Model {
                 pk = this.values_list.at(pk).pk;
             }
 
-            const id = uuidv4();
-            this.socket.send(JSON.stringify({
-                event: 'model',
-                event_type: 'edit_form',
-                event_id: id,
-                args: {
-                    model_name: this.model_name,
-                    model_query: this.model_query,
-                    pk: pk
-                }
-            }));
-
-            this.open_request[id] = [(data) => {
-                $div_form.append(data.html);
-                let $form = $div_form.closest('form').addClass(`sdc-model-edit-form sdc-model-form ${this.form_id}`).data('model', this).data('model_pk', pk);
-                if (!$form[0].hasAttribute('sdc_submit')) {
-                    $form.attr('sdc_submit', 'submitModelFormDistributor')
-                }
-
-                app.refresh($div_form);
-                cb_resolve && cb_resolve(data);
-            }, (res) => {
-                cb_reject && cb_reject(res);
-            }];
+            this._getForm(pk, 'edit_form', null, $div_form, cb_resolve, cb_reject);
         });
 
         return $div_form;
+    }
+
+    namedForm(pk = -1, formName, cb_resolve = null, cb_reject = null) {
+        let load_promise;
+        if (this.values_list.length !== 0) {
+            load_promise = this.isConnected();
+        } else {
+            load_promise = this.load();
+        }
+
+        let $div_form = $('<div  class="container-fluid">');
+
+        load_promise.then(() => {
+            if (pk <= -1) {
+                pk = this.values_list.at(pk).pk;
+            }
+
+            this._getForm(pk, 'named_form', formName, $div_form, cb_resolve, cb_reject);
+        });
+
+        return $div_form;
+    }
+
+
+    _getForm(pk, event_type, formName, $div_form, cb_resolve, cb_reject) {
+        const id = uuidv4();
+        this.socket.send(JSON.stringify({
+            event: 'model',
+            event_type: event_type,
+            event_id: id,
+            args: {
+                model_name: this.model_name,
+                model_query: this.model_query,
+                pk: pk,
+                form_name: formName
+            }
+        }));
+
+        const className = pk === null ? 'create' : 'edit';
+
+        this.open_request[id] = [(data) => {
+            $div_form.append(data.html);
+            let $form = $div_form.closest('form').addClass(`sdc-model-${className}-form sdc-model-form ${this.form_id}`).data('model', this).data('model_pk', pk);
+            if ($form.length > 0 && !$form[0].hasAttribute('sdc_submit')) {
+                $form.attr('sdc_submit', 'submitModelFormDistributor')
+            }
+
+            app.refresh($div_form);
+            cb_resolve && cb_resolve(data);
+        }, (res) => {
+            cb_reject && cb_reject(res);
+        }];
     }
 
     new() {

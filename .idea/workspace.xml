@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b4ede81-fe43-4a68-9186-e15152e2d80c" name="Changes" comment="v 0.4.12 gulp fixes" />
+    <list default="true" id="4b4ede81-fe43-4a68-9186-e15152e2d80c" name="Changes" comment="v 0.4.18 build" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -60,7 +60,7 @@
     "nodejs.jest.jest_package": "/home/martint/dev/private/SimpleDomControlClient/node_modules/jest",
     "nodejs_interpreter_path": "/home/martint/.asdf/installs/nodejs/18.18.0/bin/node",
     "nodejs_package_manager_path": "yarn",
-    "npm.build.executor": "Debug",
+    "npm.build.executor": "Run",
     "npm.test.executor": "Run",
     "project.structure.last.edited": "Modules",
     "project.structure.proportion": "0.0",
@@ -133,6 +133,7 @@
       <workItem from="1707124210562" duration="901000" />
       <workItem from="1709579952668" duration="2466000" />
       <workItem from="1709671101704" duration="290000" />
+      <workItem from="1713769095032" duration="116000" />
     </task>
     <task id="LOCAL-00001" summary="v 0.4.11 add gulp tasks to client bib">
       <option name="closed" value="true" />
@@ -150,7 +151,23 @@
       <option name="project" value="LOCAL" />
       <updated>1709671325529</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="v 0.4.18 update AbstractSDC relations (get_parent, get_children)">
+      <option name="closed" value="true" />
+      <created>1713769152596</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1713769152596</updated>
+    </task>
+    <task id="LOCAL-00004" summary="v 0.4.18 build">
+      <option name="closed" value="true" />
+      <created>1713769189716</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1713769189716</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -159,7 +176,9 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="v 0.4.11 add gulp tasks to client bib" />
     <MESSAGE value="v 0.4.12 gulp fixes" />
-    <option name="LAST_COMMIT_MESSAGE" value="v 0.4.12 gulp fixes" />
+    <MESSAGE value="v 0.4.18 update AbstractSDC relations (get_parent, get_children)" />
+    <MESSAGE value="v 0.4.18 build" />
+    <option name="LAST_COMMIT_MESSAGE" value="v 0.4.18 build" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
