@@ -219,6 +219,24 @@ export class AbstractSDC {
     }
 
     /**
+     *
+     * @param model_name {string}
+     * @param model_query {Object}
+     * @param values {Object}
+     * @constructor
+     */
+    updateModel(model_name, model_query = {}, values) {
+        let model = new Model(model_name, model_query);
+        return model.load().then(()=>{
+            model.values |= values;
+            model.save().then(()=> {
+                model.close();
+                return model.values
+            });
+        });
+    }
+
+    /**
      * Adapter to this.$container.find
      * @param {string} domSelector
      */
