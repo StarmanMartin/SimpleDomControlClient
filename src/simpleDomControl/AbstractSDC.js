@@ -208,12 +208,16 @@ export class AbstractSDC {
 
     /**
      *
-     * @param model_name {string}
+     * @param model_name {string | Number}
      * @param model_query {Object}
      * @constructor
      */
     newModel(model_name, model_query = {}) {
-        let model = new Model(model_name, model_query);
+        if(model_name instanceof Number && model_name.hasOwnProperty('load')) {
+            return model_name.load(this);
+        }
+
+        const model = new Model(model_name, model_query);
         this._models.push(model);
         return model;
     }

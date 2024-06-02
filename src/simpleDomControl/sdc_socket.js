@@ -8,6 +8,78 @@ let SDC_SOCKET = null
 const MAX_FILE_UPLOAD = 25000;
 let OPEN_REQUESTS = {};
 
+
+class SubModel {
+
+    constructor(pk, model) {
+        this._pk = pk;
+        this._model = model;
+    }
+
+    /**
+     * SDC Model Name
+     * @param {string} model
+     */
+    set model(model) {
+        this._model = model;
+    }
+
+    get model() {
+        return this._model;
+    }
+
+    /**
+     * SDC Model PK
+     * @param {Number} pk
+     */
+    set pk(pk) {
+        this._pk = pk;
+    }
+
+    get pk() {
+        return this._pk;
+    }
+
+    /**
+     * Load the sub model.
+     *
+     * @param {AbstractSDC} controller
+     * @returns {Model}
+     */
+    load(controller) {
+        if (!this._model) {
+            throw new TypeError("Model is not set!!");
+        }
+        return controller.newModel(this._model, {pk: this._pk});
+    }
+}
+
+const ModelProxyHandler = {
+    get(target, key) {
+        const value = target[key] ?? undefined;
+        if (value instanceof SubModel) {
+            const newVal = new Number(value.pk);
+            newVal.load = value.load.bind(value);
+            return newVal;
+        }
+        console.log(`We return Value ${value}`);
+        return value;
+    },
+    set(target, key, value) {
+        if (key in target) {
+            const oldVal = target[key];
+            if (oldVal instanceof SubModel) {
+                oldVal.pk = value;
+            } else {
+                target[key] = value;
+            }
+        } else {
+            target[key] = value;
+        }
+        return true;
+    }
+}
+
 export function callServer(app, controller, funcName, args) {
 
     let id = uuidv4();
@@ -70,7 +142,7 @@ function _connect() {
         };
 
         SDC_SOCKET.onclose = function () {
-            if(IS_CONNECTED) {
+            if (IS_CONNECTED) {
                 console.error('SDC Socket closed unexpectedly');
             }
             IS_CONNECTED = false;
@@ -201,7 +273,7 @@ export class Model {
         if (pk !== null) {
             let elem = this.values_list.find(elm => elm.pk === pk);
             if (!elem) {
-                elem = {pk: pk};
+                elem = new Proxy({pk: pk}, ModelProxyHandler);
                 this.values_list.push(elem);
             }
             return elem;
@@ -679,7 +751,8 @@ export class Model {
             } else if (data.type === 'load') {
                 const json_res = JSON.parse(data.args.data);
                 this.values_list = [];
-                this._parseServerRes(json_res);
+                const obj = this._parseServerRes(json_res);
+                data.args.data = obj;
 
             } else if (data.type === 'on_update' || data.type === 'on_create') {
                 const json_res = JSON.parse(data.args.data);
@@ -694,6 +767,7 @@ export class Model {
                 }
 
                 cb(obj);
+                data.args.data = obj;
 
             }
             if (this.open_request.hasOwnProperty(data.event_id)) {
@@ -769,16 +843,16 @@ export class Model {
     }
 
     _parseServerRes(res) {
-        let updated = []
+        let updated = [];
         for (let json_data of res) {
             const pk = json_data.pk
             const obj = this.byPk(pk);
             for (const [k, v] of Object.entries(json_data.fields)) {
-                //if(v && typeof v === 'object' && v['__is_sdc_model__']) {
-                //    obj[k] = new Model(v['model'], {'pk': v['pk']})
-                //} else {
-                obj[k] = v;
-                //}
+                if (v && typeof v === 'object' && v['__is_sdc_model__']) {
+                    obj[k] = new SubModel(v['pk'], v['model'])
+                } else {
+                    obj[k] = v;
+                }
             }
 
             updated.push(obj);
