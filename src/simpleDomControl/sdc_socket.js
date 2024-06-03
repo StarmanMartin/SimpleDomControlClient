@@ -58,11 +58,13 @@ const ModelProxyHandler = {
     get(target, key) {
         const value = target[key] ?? undefined;
         if (value instanceof SubModel) {
+            if(!value.pk && value.pk !== 0) {
+                return null
+            }
             const newVal = new Number(value.pk);
             newVal.load = value.load.bind(value);
             return newVal;
         }
-        console.log(`We return Value ${value}`);
         return value;
     },
     set(target, key, value) {
