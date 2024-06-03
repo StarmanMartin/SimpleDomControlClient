@@ -12,7 +12,7 @@ let OPEN_REQUESTS = {};
 class SubModel {
 
     constructor(pk, model) {
-        this._pk = pk;
+        this.pk = pk;
         this._model = model;
     }
 
@@ -27,19 +27,6 @@ class SubModel {
     get model() {
         return this._model;
     }
-
-    /**
-     * SDC Model PK
-     * @param {Number} pk
-     */
-    set pk(pk) {
-        this._pk = pk;
-    }
-
-    get pk() {
-        return this._pk;
-    }
-
     /**
      * Load the sub model.
      *
@@ -50,7 +37,7 @@ class SubModel {
         if (!this._model) {
             throw new TypeError("Model is not set!!");
         }
-        return controller.newModel(this._model, {pk: this._pk});
+        return controller.newModel(this._model, {pk: this.pk});
     }
 }
 
@@ -71,7 +58,11 @@ const ModelProxyHandler = {
         if (key in target) {
             const oldVal = target[key];
             if (oldVal instanceof SubModel) {
-                oldVal.pk = value;
+                if(value.hasOwnProperty('pk')) {
+                    oldVal.pk = value.pk;
+                } else {
+                    oldVal.pk = value;
+                }
             } else {
                 target[key] = value;
             }
