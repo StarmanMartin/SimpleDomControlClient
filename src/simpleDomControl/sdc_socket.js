@@ -556,8 +556,8 @@ export class Model {
                         }));
 
                         this.open_request[id] = [(res) => {
-                            let data = JSON.parse(res.data.instance);
-                            this._parseServerRes(data);
+                            let data = typeof res.data.instance === 'string' ? JSON.parse(res.data.instance) : res.data.instance;
+                            res.data.instance = this._parseServerRes(data);
                             resolve(res);
                         }, reject];
                     });
@@ -586,8 +586,8 @@ export class Model {
                     }));
 
                     this.open_request[id] = [(res) => {
-                        let data = JSON.parse(res.data.instance);
-                        this._parseServerRes(data);
+                        let data = typeof res.data.instance === 'string' ? JSON.parse(res.data.instance) : res.data.instance;
+                        res.data.instance = this._parseServerRes(data)[0];
                         resolve(res);
                     }, reject];
                 })
