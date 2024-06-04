@@ -763,6 +763,12 @@ export class Model {
                 data.args.data = obj;
 
             }
+
+            let instance = data.data?.instance
+            if(instance) {
+                data.data.instance = JSON.parse(data.data.instance);
+            }
+
             if (this.open_request.hasOwnProperty(data.event_id)) {
                 this.open_request[data.event_id][0](data);
                 delete this.open_request[data.event_id];
