@@ -27,6 +27,7 @@ class SubModel {
     get model() {
         return this._model;
     }
+
     /**
      * Load the sub model.
      *
@@ -45,7 +46,7 @@ const ModelProxyHandler = {
     get(target, key) {
         const value = target[key] ?? undefined;
         if (value instanceof SubModel) {
-            if(!value.pk && value.pk !== 0) {
+            if (!value.pk && value.pk !== 0) {
                 return null
             }
             const newVal = new Number(value.pk);
@@ -58,7 +59,7 @@ const ModelProxyHandler = {
         if (key in target) {
             const oldVal = target[key];
             if (oldVal instanceof SubModel) {
-                if(value.hasOwnProperty('pk')) {
+                if (value.hasOwnProperty('pk')) {
                     oldVal.pk = value.pk;
                 } else {
                     oldVal.pk = value;
@@ -264,6 +265,10 @@ export class Model {
 
     byPk(pk) {
         if (pk !== null) {
+            pk = parseInt(pk);
+            if (isNaN(pk)) {
+                pk = -1;
+            }
             let elem = this.values_list.find(elm => elm.pk === pk);
             if (!elem) {
                 elem = new Proxy({pk: pk}, ModelProxyHandler);
@@ -328,6 +333,10 @@ export class Model {
     }
 
     detailView(pk = -1, cb_resolve = null, cb_reject = null) {
+        pk = parseInt(pk);
+        if (isNaN(pk)) {
+            pk = -1;
+        }
         let $div_list = $('<div class="container-fluid">');
 
         let load_promise;
@@ -449,6 +458,10 @@ export class Model {
     }
 
     editForm(pk = -1, cb_resolve = null, cb_reject = null) {
+        pk = parseInt(pk);
+        if (isNaN(pk)) {
+            pk = -1;
+        }
         let load_promise;
         if (this.values_list.length !== 0) {
             load_promise = this.isConnected();
@@ -470,6 +483,10 @@ export class Model {
     }
 
     namedForm(pk = -1, formName, cb_resolve = null, cb_reject = null) {
+        pk = parseInt(pk);
+        if (isNaN(pk)) {
+            pk = -1;
+        }
         let load_promise;
         if (this.values_list.length !== 0) {
             load_promise = this.isConnected();
@@ -492,6 +509,10 @@ export class Model {
 
 
     _getForm(pk, event_type, formName, $div_form, cb_resolve, cb_reject) {
+        pk = parseInt(pk);
+        if (isNaN(pk)) {
+            pk = -1;
+        }
         const id = uuidv4();
         this.socket.send(JSON.stringify({
             event: 'model',
@@ -531,6 +552,10 @@ export class Model {
     }
 
     save(pk = -1) {
+        pk = parseInt(pk);
+        if (isNaN(pk)) {
+            pk = -1;
+        }
         return this.isConnected().then(() => {
             let elem_list;
             if (pk > -1) {
@@ -596,7 +621,11 @@ export class Model {
     }
 
     delete(pk = -1) {
-        if (pk === -1) pk = this.values?.pk
+        pk = parseInt(pk);
+        if (isNaN(pk)) {
+            pk = -1;
+        }
+        if (pk === -1) pk = this.values?.pk;
         const id = uuidv4();
         return this.isConnected().then(() => {
             return new Promise((resolve, reject) => {
@@ -744,8 +773,7 @@ export class Model {
             } else if (data.type === 'load') {
                 const json_res = JSON.parse(data.args.data);
                 this.values_list = [];
-                const obj = this._parseServerRes(json_res);
-                data.args.data = obj;
+                data.args.data = this._parseServerRes(json_res);
 
             } else if (data.type === 'on_update' || data.type === 'on_create') {
                 const json_res = JSON.parse(data.args.data);
@@ -765,7 +793,7 @@ export class Model {
             }
 
             let instance = data.data?.instance
-            if(instance) {
+            if (instance) {
                 data.data.instance = JSON.parse(data.data.instance);
             }
 
@@ -844,7 +872,7 @@ export class Model {
     _parseServerRes(res) {
         let updated = [];
         for (let json_data of res) {
-            const pk = json_data.pk
+            const pk = json_data.pk;
             const obj = this.byPk(pk);
             for (const [k, v] of Object.entries(json_data.fields)) {
                 if (v && typeof v === 'object' && v['__is_sdc_model__']) {
