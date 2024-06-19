@@ -266,6 +266,20 @@ export class AbstractSDC {
         return this.defaultSubmitModelForm($form, e);
     }
 
+    iterateAllChildren() {
+        let _childController = this._childController;
+        let res = [];
+        for (let i in _childController) {
+            if (_childController.hasOwnProperty(i)) {
+                for (let cc of _childController[i]) {
+                    res.push(cc);
+                    res.push(...cc.iterateAllChildren());
+                }
+            }
+        }
+        return res;
+    }
+
     /**
      * Model Form Events
      */
@@ -287,9 +301,17 @@ export class AbstractSDC {
 
                     prom.then((res) => {
                         clearErrorsInForm($form);
+                        this.submit_model_form_success && this.submit_model_form_success(res[0]);
+                        for(const controller of this.iterateAllChildren()) {
+                            controller.submit_model_form_success && controller.submit_model_form_success(res[0]);
+                        }
                         resolve(res);
                     }).catch((data) => {
-                        setErrorsInForm($form, $(data.html))
+                        setErrorsInForm($form, $(data.html));
+                        this.submit_model_form_error && this.submit_model_form_error(data);
+                        for(const controller of this.iterateAllChildren()) {
+                            controller.submit_model_form_error && controller.submit_model_form_error(data);
+                        }
                         reject(data);
                     });
                 }));
