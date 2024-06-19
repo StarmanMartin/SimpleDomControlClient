@@ -293,7 +293,7 @@ export class AbstractSDC {
             for (let instance_value of values) {
                 p_list.push(new Promise((resolve, reject) => {
                     let prom;
-                    if (instance_value.pk !== null) {
+                    if (instance_value.pk !== null && instance_value.pk >= 0) {
                         prom = model.save(instance_value.pk);
                     } else {
                         prom = model.create(instance_value);

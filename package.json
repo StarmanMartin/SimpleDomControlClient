@@ -1,6 +1,6 @@
 {
   "name": "sdc_client",
-  "version": "0.5.4",
+  "version": "0.55.1",
   "description": "Simple Dom Control",
   "main": "dist/ugly.index.js",
   "type": "module",
@@ -34,7 +34,7 @@
     "gulp": "^4.0.2",
     "jest": "^28.1.3",
     "jest-environment-jsdom": "^29.7.0",
-    "micromatch": "^4.0.5",
+    "micromatch": "^4.0.6",
     "vinyl-named": "^1.1.0",
     "webpack": "^5.89.0",
     "webpack-stream": "^7.0.0",

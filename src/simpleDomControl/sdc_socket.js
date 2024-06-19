@@ -526,7 +526,7 @@ export class Model {
             }
         }));
 
-        const className = pk === null ? 'create' : 'edit';
+        const className = pk === null || pk === -1 ? 'create' : 'edit';
 
         this.open_request[id] = [(data) => {
             $div_form.append(data.html);
