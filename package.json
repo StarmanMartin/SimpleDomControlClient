@@ -1,6 +1,6 @@
 {
   "name": "sdc_client",
-  "version": "0.55.3",
+  "version": "0.55.4",
   "description": "Simple Dom Control",
   "main": "dist/ugly.index.js",
   "type": "module",
