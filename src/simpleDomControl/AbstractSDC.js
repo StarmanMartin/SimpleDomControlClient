@@ -8,10 +8,9 @@ export class AbstractSDC {
         this._uuid = uuidv4();
         this.contentUrl = '';
         this.contentReload = false;
-        this.hasSubnavView = false;
         this.events = [];
         this.load_async = false;
-        this.isEventsSet = false;
+        this._isEventsSet = false;
         this._allEvents = null;
 
         this._urlParams = [];

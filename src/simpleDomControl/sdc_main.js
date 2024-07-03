@@ -365,7 +365,7 @@ export let app = {
         let controller = leafController;
         let controllerList = [];
         while (controller) {
-            controller.isEventsSet = false;
+            controller._isEventsSet = false;
             controllerList.unshift(controller);
             controller = controller._parentController;
         }

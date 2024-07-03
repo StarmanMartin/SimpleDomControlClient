@@ -69,7 +69,7 @@ export function initEvents() {
  */
 export function setControllerEvents(controller) {
 
-    if (controller.isEventsSet) {
+    if (controller._isEventsSet) {
         return;
     }
 
@@ -95,6 +95,6 @@ export function setControllerEvents(controller) {
             }
         }
     }
-
-    //controller.isEventsSet = true;
+    // TODO: Is it needed
+    //controller._isEventsSet = true;
 }
