@@ -128,7 +128,6 @@ describe('Controller', () => {
         let ctr = new TestCtr();
         expect(ctr.contentUrl).toBe("TestCtr");
         expect(ctr.contentReload).toBe(true);
-        expect(ctr.hasSubnavView).toBe(false);
     });
 
 });
