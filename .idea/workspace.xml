@@ -4,16 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b4ede81-fe43-4a68-9186-e15152e2d80c" name="Changes" comment="v 0.4.18 build">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tool-versions" beforeDir="false" afterPath="$PROJECT_DIR$/.tool-versions" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/dist/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/ugly.index.js" beforeDir="false" afterPath="$PROJECT_DIR$/dist/ugly.index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/simpleDomControl/AbstractSDC.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/AbstractSDC.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test-setup.js" beforeDir="false" afterPath="$PROJECT_DIR$/test-setup.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/yarn.lock" beforeDir="false" afterPath="$PROJECT_DIR$/yarn.lock" afterDir="false" />
-    </list>
+    <list default="true" id="4b4ede81-fe43-4a68-9186-e15152e2d80c" name="Changes" comment="v 0.56.2 Fixed new version bugs" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -151,7 +142,7 @@
       <workItem from="1709579952668" duration="2466000" />
       <workItem from="1709671101704" duration="290000" />
       <workItem from="1713769095032" duration="116000" />
-      <workItem from="1730803990300" duration="1659000" />
+      <workItem from="1730803990300" duration="2151000" />
     </task>
     <task id="LOCAL-00001" summary="v 0.4.11 add gulp tasks to client bib">
       <option name="closed" value="true" />
@@ -185,7 +176,15 @@
       <option name="project" value="LOCAL" />
       <updated>1713769189716</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="v 0.56.2 Fixed new version bugs">
+      <option name="closed" value="true" />
+      <created>1730805685222</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1730805685222</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -196,7 +195,8 @@
     <MESSAGE value="v 0.4.12 gulp fixes" />
     <MESSAGE value="v 0.4.18 update AbstractSDC relations (get_parent, get_children)" />
     <MESSAGE value="v 0.4.18 build" />
-    <option name="LAST_COMMIT_MESSAGE" value="v 0.4.18 build" />
+    <MESSAGE value="v 0.56.2 Fixed new version bugs" />
+    <option name="LAST_COMMIT_MESSAGE" value="v 0.56.2 Fixed new version bugs" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
