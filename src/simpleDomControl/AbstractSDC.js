@@ -2,7 +2,6 @@ import {allOff} from "./sdc_events.js";
 import {app} from "./sdc_main.js";
 import {callServer, Model} from "./sdc_socket.js";
 import {uuidv4, setErrorsInForm, clearErrorsInForm, tagNameToCamelCase, tagNameToReadableName} from "./sdc_utils.js";
-import {merge} from "lodash";
 
 export class AbstractSDC {
     constructor() {
@@ -180,7 +179,7 @@ export class AbstractSDC {
         }
 
 
-        return (this._allEvents = merge(...allEvents));
+        return (this._allEvents = _.merge(...allEvents));
     }
 
     post(url, args) {
