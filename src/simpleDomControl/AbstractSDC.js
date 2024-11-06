@@ -1,6 +1,7 @@
 import {allOff} from "./sdc_events.js";
 import {app} from "./sdc_main.js";
-import {callServer, Model} from "./sdc_socket.js";
+import {Model} from "./sdc_socket.js";
+import {callServer} from "./sdc_server_call.js";
 import {uuidv4, setErrorsInForm, clearErrorsInForm, tagNameToCamelCase, tagNameToReadableName} from "./sdc_utils.js";
 
 export class AbstractSDC {
@@ -202,7 +203,7 @@ export class AbstractSDC {
             return;
         }
 
-        return callServer(app[1], this._tagName, methode, args);
+        return callServer(app[1], this._tagName, this.parsedContentUrl, methode, args);
     }
 
     /**

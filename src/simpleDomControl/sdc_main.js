@@ -15,7 +15,7 @@ import {AbstractSDC} from "./AbstractSDC.js";
 import {Global, controllerList, tagList} from "./sdc_controller.js";
 import {initEvents, setControllerEvents, STD_EVENT_LIST, windowEventHandler} from "./sdc_dom_events.js";
 import {trigger} from "./sdc_events.js";
-import {isConnected, close} from "./sdc_socket.js";
+import {isConnected, close} from "./sdc_server_call.js";
 
 const PROPERTIES_UPDATE = {'classname': 'class'}
 
