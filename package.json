@@ -1,8 +1,8 @@
 {
   "name": "sdc_client",
-  "version": "0.57.1l",
+  "version": "0.57.4",
   "description": "Simple Dom Control",
-  "main": "src/index.js",
+  "main": "dist/ugly.index.js",
   "type": "module",
   "scripts": {
     "build": "gulp development & gulp build",

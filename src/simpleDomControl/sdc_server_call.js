@@ -38,12 +38,21 @@ function postCallServer(parsedContentUrl, funcName, args) {
         '_sdc_func_name': funcName, '_method': 'sdc_server_call'
     }
     return $.post({
-            url: parsedContentUrl,
-            data: args,
-            beforeSend: function (xhr, settings) {
-                xhr.setRequestHeader("X-CSRFToken", window.CSRF_TOKEN);
-            }
-        }).then((res) => res['_return_data']);
+        url: parsedContentUrl,
+        data: args,
+        beforeSend: function (xhr, settings) {
+            xhr.setRequestHeader("X-CSRFToken", window.CSRF_TOKEN);
+        }
+    }).then((res) => {
+        const data = res['_return_data'];
+        _handle_response(data);
+        return data;
+    }).catch((res) => {
+        const data = res.responseJSON;
+        data.is_error = true;
+        _handle_response(data);
+        throw res;
+    });
 }
 
 function socketCallServer(app, controller, funcName, args) {
@@ -77,34 +86,7 @@ function _connect() {
 
         SDC_SOCKET.onmessage = function (e) {
             let data = JSON.parse(e.data);
-            if (data.is_error) {
-                if (data.msg || data.header) {
-                    trigger('pushErrorMsg', data.header || '', data.msg || '');
-                }
-                if (OPEN_REQUESTS[data.id]) {
-                    OPEN_REQUESTS[data.id][1](data.data || null);
-                    delete OPEN_REQUESTS[data.id];
-                }
-            } else {
-                if (data.msg || data.header) {
-                    trigger('pushMsg', data.header || '', data.msg || '');
-                }
-
-                if (data.type && data.type === 'sdc_recall') {
-                    if (OPEN_REQUESTS[data.id]) {
-                        OPEN_REQUESTS[data.id][0](data.data);
-                        delete OPEN_REQUESTS[data.id];
-                    }
-                } else if (data.type && data.type === 'sdc_event') {
-                    let event = data.event;
-                    if (event) {
-                        trigger(event, data.payload);
-                    }
-
-                } else if (data.type && data.type === 'sdc_redirect') {
-                    trigger('onNavLink', data.link);
-                }
-            }
+            _handle_response(data);
         };
 
         SDC_SOCKET.onclose = function () {
@@ -139,6 +121,40 @@ function _connect() {
             resolve();
         }
     })
+}
+
+function _handle_response(data) {
+    if(!data) {
+        data = {};
+    }
+    if (data.is_error) {
+        if (data.msg || data.header) {
+            trigger('pushErrorMsg', data.header || '', data.msg || '');
+        }
+        if (data.id && OPEN_REQUESTS[data.id]) {
+            OPEN_REQUESTS[data.id][1](data.data || null);
+            delete OPEN_REQUESTS[data.id];
+        }
+    } else {
+        if (data.msg || data.header) {
+            trigger('pushMsg', data.header || '', data.msg || '');
+        }
+
+        if (data.type && data.type === 'sdc_recall') {
+            if (data.id && OPEN_REQUESTS[data.id]) {
+                OPEN_REQUESTS[data.id][0](data.data);
+                delete OPEN_REQUESTS[data.id];
+            }
+        } else if (data.type && data.type === 'sdc_event') {
+            let event = data.event;
+            if (event) {
+                trigger(event, data.payload);
+            }
+
+        } else if (data.type && data.type === 'sdc_redirect') {
+            trigger('onNavLink', data.link);
+        }
+    }
 }
 
 function socketClose() {
