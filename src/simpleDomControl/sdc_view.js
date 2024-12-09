@@ -318,11 +318,11 @@ function _reloadMethodHTML(controller, $dom) {
             }
         }
 
-        if (result !== undefined) {
-            if (typeof result === 'function') {
-                result = result.bind(controller)($this.data());
-            }
 
+        if (typeof result === 'function') {
+            result = result.bind(controller)($this.data());
+        }
+        if (result !== undefined) {
             plist.push(Promise.resolve(result).then((x) => {
                 const $new_content = $(`<div></div>`);
                 $new_content.append(x);
