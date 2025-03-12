@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b4ede81-fe43-4a68-9186-e15152e2d80c" name="Changes" comment="v 0.56.2 Fixed new version bugs" />
+    <list default="true" id="4b4ede81-fe43-4a68-9186-e15152e2d80c" name="Changes" comment="v 0.57.9 Update dependencies" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -48,15 +48,15 @@
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "git-widget-placeholder": "main",
     "go.import.settings.migrated": "true",
-    "javascript.nodejs.core.library.configured.version": "18.18.0",
-    "javascript.nodejs.core.library.typings.version": "18.18.14",
+    "javascript.nodejs.core.library.configured.version": "22.8.0",
+    "javascript.nodejs.core.library.typings.version": "22.8.7",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "/home/martin/Develop/private/SimpleDomControlClient",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs.jest.jest_package": "/home/martint/dev/private/SimpleDomControlClient/node_modules/jest",
+    "nodejs.jest.jest_package": "/home/martin/Develop/private/SimpleDomControlClient/node_modules/jest",
     "nodejs_interpreter_path": "/home/martin/.asdf/installs/nodejs/22.8.0/bin/node",
     "nodejs_package_manager_path": "yarn",
     "npm.build.executor": "Run",
@@ -74,10 +74,10 @@
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
-  <component name="RunManager" selected="npm.build">
+  <component name="RunManager" selected="npm.test">
     <configuration name="jest.config.mjs" type="JavaScriptTestRunnerJest" nameIsGenerated="true">
       <config-file value="$PROJECT_DIR$/jest.config.mjs" />
-      <node-interpreter value="$USER_HOME$/.asdf/installs/nodejs/18.18.0/bin/node" />
+      <node-interpreter value="$USER_HOME$/.asdf/installs/nodejs/22.8.0/bin/node" />
       <node-options value="--experimental-vm-modules" />
       <jest-package value="$PROJECT_DIR$/node_modules/jest" />
       <working-dir value="$PROJECT_DIR$" />
@@ -119,8 +119,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-fdfe4dae3a2d-intellij.indexing.shared.core-IU-243.21565.23" />
-        <option value="bundled-js-predefined-d6986cc7102b-e768b9ed790e-JavaScript-IU-243.21565.23" />
+        <option value="bundled-jdk-9823dce3aa75-fdfe4dae3a2d-intellij.indexing.shared.core-IU-243.22562.218" />
+        <option value="bundled-js-predefined-d6986cc7102b-deb605915726-JavaScript-IU-243.22562.218" />
       </set>
     </attachedChunks>
   </component>
@@ -143,6 +143,7 @@
       <workItem from="1709671101704" duration="290000" />
       <workItem from="1713769095032" duration="116000" />
       <workItem from="1730803990300" duration="2495000" />
+      <workItem from="1741761262308" duration="532000" />
     </task>
     <task id="LOCAL-00001" summary="v 0.4.11 add gulp tasks to client bib">
       <option name="closed" value="true" />
@@ -184,7 +185,15 @@
       <option name="project" value="LOCAL" />
       <updated>1730805685222</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="v 0.57.9 Update dependencies">
+      <option name="closed" value="true" />
+      <created>1741761774404</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1741761774404</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -196,7 +205,8 @@
     <MESSAGE value="v 0.4.18 update AbstractSDC relations (get_parent, get_children)" />
     <MESSAGE value="v 0.4.18 build" />
     <MESSAGE value="v 0.56.2 Fixed new version bugs" />
-    <option name="LAST_COMMIT_MESSAGE" value="v 0.56.2 Fixed new version bugs" />
+    <MESSAGE value="v 0.57.9 Update dependencies" />
+    <option name="LAST_COMMIT_MESSAGE" value="v 0.57.9 Update dependencies" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
