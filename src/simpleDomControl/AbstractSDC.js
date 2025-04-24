@@ -256,6 +256,10 @@ export class AbstractSDC {
         return app.reloadController(this);
     }
 
+    reconcile($virtualNode, $realNode = null) {
+        return app.reconcile(this, $virtualNode, $realNode);
+    }
+
     submitModelFormDistributor($form, e) {
         if (typeof this._submitModelForm === 'function') {
             return this._submitModelForm($form, e);

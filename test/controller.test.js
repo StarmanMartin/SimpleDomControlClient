@@ -9,48 +9,8 @@ import * as sdc_view from '../src/simpleDomControl/sdc_view.js';
 const app = sdc.app;
 
 import $ from 'jquery';
+import {TestCtr, TestCtrA} from "./utils.js";
 window.$ = $;
-
-const TestControllerInfo = {
-    name: 'TestCtr',
-    tag: 'test-ctr'
-};
-
-class TestCtr extends sdc.AbstractSDC {
-    constructor() {
-        super();
-        this.contentUrl = TestControllerInfo.name; //<test-ctr>
-        this.events.unshift({});
-        this.val = 0;
-        this.contentReload = true;
-    }
-
-    sayA() {
-        return 'A'
-    }
-
-    onInit() {}
-}
-
-class TestCtrA extends sdc.AbstractSDC {
-    constructor() {
-        super();
-        this.contentUrl = 'TestCtrA'; //<test-ctr-a>
-        this.events.unshift({});
-        this.val = 1;
-        this.val_2 = 2;
-    }
-
-    sayA() {
-        return 'B'
-    }
-
-    sayB() {
-        return 'B'
-    }
-
-    onInit() {}
-}
 
 describe('Controller', () => {
     let ajaxSpy;

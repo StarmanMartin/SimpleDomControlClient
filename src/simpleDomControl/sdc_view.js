@@ -107,7 +107,7 @@ function loadHTMLFile(path, args, tag, hardReload) {
             const data = err.responseJSON;
             trigger('_RedirectOnView', data['url-link']);
         }
-        trigger('navLoaded', {'controller_name': ()=> err.status});
+        trigger('navLoaded', {'controller_name': () => err.status});
 
         throw `<sdc-error data-code="${err.status}">${err.responseText}</sdc-error>`;
     });
@@ -300,16 +300,17 @@ export function replaceTagElementsInContainer(tagList, $container, parentControl
     });
 }
 
-export function reloadMethodHTML(controller) {
-    return _reloadMethodHTML(controller, controller.$container)
+export function reloadMethodHTML(controller, $container) {
+    return _reloadMethodHTML(controller, $container ?? controller.$container)
 }
+
 function _reloadMethodHTML(controller, $dom) {
     const plist = [];
 
     $dom.find(`._bind_to_update_handler.sdc_uuid_${controller._uuid}`).each(function () {
         const $this = $(this);
         let result = undefined;
-        if($this.hasClass(`_with_handler`)) {
+        if ($this.hasClass(`_with_handler`)) {
             result = $this.data('handler');
         } else {
             let controller_handler = this.tagName.toLowerCase().replace(/^this./, '');
@@ -324,18 +325,198 @@ function _reloadMethodHTML(controller, $dom) {
         }
         if (result !== undefined) {
             plist.push(Promise.resolve(result).then((x) => {
-                const $new_content = $(`<div></div>`);
-                $new_content.append(x);
-                return replaceTagElementsInContainer(tagList(), $new_content, controller).then(()=> {
-                    return _reloadMethodHTML(controller, $new_content).then(()=> {
-                        $this.safeEmpty().text('').append(x);
-                        return true;
-                    });
-                });
+                let $newContent = $(`<div></div>`);
+                $newContent.append(x);
+                $newContent = $this.clone().empty().append($newContent);
+                return controller.reconcile($newContent, $this);
             }));
         }
 
     });
 
     return Promise.all(plist);
+}
+
+
+function getNodeKey(node) {
+    if (node[0].nodeType === 3) {
+        return `TEXT__${node[0].nodeValue}`;
+    }
+    const res = [node[0].tagName];
+    if (node[0].nodeName === 'INPUT') {
+        [['name', ''], ['type', 'text'], ['id', '']].forEach(([key, defaultValue]) => {
+            const attr = node.attr(key) ?? defaultValue;
+            if (attr) {
+                res.push(attr);
+            }
+        });
+    }
+    return res.join('__');
+}
+
+function reconcileTree($element, id = [], parent = null) {
+    id.push(getNodeKey($element));
+    const obj = {
+        $element,
+        id: id.join('::'),
+        depth: id.length,
+        idx: 0,
+        op: null,
+        parent
+    };
+    return [obj].concat($element.contents().toArray().map((x) => reconcileTree($(x), id.slice(), obj)).flat());
+
+}
+
+
+export function reconcile($virtualNode, $realNode) {
+    const $old = reconcileTree($realNode);
+    const $new = reconcileTree($virtualNode);
+    $old.map((x, i) => x.idx = i);
+    $new.map((x, i) => x.idx = i);
+    const depth = Math.max(...$new.concat($old).map(x => x.depth));
+    const op_steps = lcbDiff($old, $new, depth);
+    let opIdx = 0;
+    op_steps.forEach(op_step => {
+        console.log($realNode);
+        const {op, $element, idx} = op_step;
+        if (op.type === 'keep_counterpart') {
+
+           if(op.counterpart.idx + opIdx !== idx) {
+               const elemBefore = op_step.getBefore();
+               if(!elemBefore) {
+                   op_step.getRealParent().$element.prepend(op.counterpart.$element);
+               } else {
+                   op.counterpart.$element.insertAfter(elemBefore.$element);
+               }
+           }
+            syncAttributes(op.counterpart.$element, $element);
+           $element.safeRemove();
+
+        } else if (op.type === 'delete') {
+            $element.safeRemove();
+            opIdx--;
+        } else if (op.type === 'insert_ignore') {
+            opIdx++;
+        } else if (op.type === 'insert') {
+            opIdx++;
+            const {after, target} = op_step.op;
+            if (after) {
+                $element.insertAfter(after.$element);
+            } else if (target) {
+                target.$element.prepend($element);
+            }
+
+        }
+    });
+}
+
+function syncAttributes($real, $virtual) {
+    const realAttrs = $real[0].attributes ?? [];
+    const virtualAttrs = $virtual[0].attributes ?? [];
+    // Remove missing attrs
+    [...realAttrs].forEach(attr => {
+        if (!$virtual.is(`[${attr.name}]`)) {
+            $real.removeAttr(attr.name);
+        }
+    });
+
+    // Add or update
+    [...virtualAttrs].forEach(attr => {
+        if (!attr.name.startsWith(`data`) && $real.attr(attr.name) !== attr.value) {
+            $real.attr(attr.name, attr.value);
+        }
+    });
+
+    Object.entries($virtual.data()).forEach(([key, value]) => {
+        if (key !== DATA_CONTROLLER_KEY) {
+            $real.data(key, value);
+        }
+    });
+}
+
+/**
+ * LCB (Longest Common Branch) finds matching branches and reserves them!
+ *
+ * @param oldNodes
+ * @param newNodes
+ * @param depth
+ * @returns {*|*[]}
+ */
+function lcbDiff(oldNodes, newNodes, depth) {
+    newNodes.filter(x => x.depth === depth && !x.op).forEach((newNode) => {
+        const oldNode = oldNodes.find((tempOldNode) => {
+            return !tempOldNode.op && tempOldNode.id === newNode.id;
+        });
+
+        if (oldNode) {
+            const keepTreeBranch = (oldNode, newNode) => {
+                oldNode.op = {type: 'keep', idx: newNode.idx};
+                newNode.op = {type: 'keep_counterpart', counterpart: oldNode};
+                oldNode = oldNode.parent;
+                if (!oldNode || oldNode.op) {
+                    return;
+                }
+                newNode = newNode.parent;
+                keepTreeBranch(oldNode, newNode);
+
+            }
+            keepTreeBranch(oldNode, newNode);
+        }
+    });
+    if (depth > 1) {
+        return lcbDiff(oldNodes, newNodes, depth - 1);
+    }
+
+    oldNodes.forEach((x, i) => {
+        if (!x.op) {
+            const idx = (oldNodes[i - 1]?.op.idx ?? -1) + 1;
+            x.op = {type: 'delete', idx}
+        }
+    });
+
+    function getRealParent(element) {
+        if (!element.parent) {
+            return null;
+        }
+        return element.parent.op.type === 'keep_counterpart' ? element.parent.op.counterpart : element.parent;
+    }
+
+    function getBefore(element, idx) {
+        const startDepth = element.depth;
+        while (idx >= 0 && element.depth >= startDepth) {
+            idx -= 1;
+            element = newNodes[idx];
+            if (element.depth === startDepth) {
+                return element.op.type === 'keep_counterpart' ? element.op.counterpart : element;
+            }
+        }
+
+        return null
+
+    }
+
+    newNodes.forEach((x, i) => {
+        x.getBefore = () => getBefore(x, i);
+        x.getRealParent = () => getRealParent(x);
+
+        if (!x.op) {
+            const target = x.getRealParent();
+            const type = target?.op.type === 'insert' ? 'insert_ignore' : 'insert';
+            x.op = {type, target, after: x.getBefore()}
+        }
+    });
+
+    const tagged = [
+        ...oldNodes,
+        ...newNodes,
+    ];
+
+
+    return tagged.sort((a, b) => {
+        const aVal = a.op?.idx ?? a.idx;
+        const bVal = b.op?.idx ?? b.idx;
+
+        return aVal - bVal;
+    });
 }

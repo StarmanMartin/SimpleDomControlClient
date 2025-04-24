@@ -56,6 +56,7 @@ export function tagNameToCamelCase(str) {
     str = str.replace(/-./g, letter => `${letter[1].toUpperCase()}`);
     return str;
 }
+
 export function tagNameToReadableName(str) {
     str = str.replace(/-./g, letter => ` ${letter[1].toUpperCase()}`).replace(/^./g, letter => `${letter.toUpperCase()}`);
     return str;
@@ -83,31 +84,42 @@ const copyProps = (targetClass, sourceClass) => {
 
 /**
  *
- * @param {AbstractSDC} baseClass
- * @param {AbstractSDC} mixins
+ * @param {typeof AbstractSDC} baseClass
+ * @param {typeof AbstractSDC} mixins
  * @returns {AbstractSDC}
  */
 export function agileAggregation(baseClass, ...mixins) {
 
-    let base = class _Combined {
-        constructor(..._args) {
-            let _mixins = {};
-            mixins.forEach((mixin) => {
-                let newMixin;
-                Object.assign(this, (newMixin = new mixin()));
-                newMixin._tagName = mixin.prototype._tagName;
-                newMixin._isMixin = true;
-                _mixins[mixin.name] = newMixin;
-            });
+    let base = {
+        [baseClass.name]: class {
+            constructor(..._args) {
+                let _mixins = {};
+                mixins.forEach((mixin) => {
+                    let newMixin;
+                    Object.assign(this, (newMixin = new mixin()));
+                    newMixin._tagName = mixin.prototype._tagName;
+                    newMixin._isMixin = true;
+                    _mixins[mixin.name] = newMixin;
+                });
 
-            Object.assign(this, new baseClass());
-            this._mixins = _mixins;
-        }
+                Object.assign(this, new baseClass());
+                this._mixins = _mixins;
+            }
 
-        get mixins() {
-            return this._mixins;
+
+            static get name() {
+                return baseClass.name;
+            }
+
+            static className() {
+                return this.name
+            }
+
+            get mixins() {
+                return this._mixins;
+            }
         }
-    };
+    }[baseClass.name];
 
     copyProps(base, baseClass);
 
@@ -141,7 +153,7 @@ export function uploadFileFormData(formData, url, method) {
         cache: false,
         contentType: false,
         processData: false,
-        beforeSend: function(xhr, settings) {
+        beforeSend: function (xhr, settings) {
             if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
                 xhr.setRequestHeader("X-CSRFToken", window.CSRF_TOKEN);
             }
@@ -171,8 +183,8 @@ export function checkIfParamNumberBoolOrString(paramElement, controller = null) 
         return paramElement;
     }
 
-    if(controller && typeof controller[paramElement] !== 'undefined') {
-        if(typeof controller[paramElement] === 'function') {
+    if (controller && typeof controller[paramElement] !== 'undefined') {
+        if (typeof controller[paramElement] === 'function') {
             return controller[paramElement].bind(controller);
         }
         return controller[paramElement];
@@ -213,7 +225,7 @@ export function clearErrorsInForm($form) {
 }
 
 export function setErrorsInForm($form, $resForm) {
-    $resForm  = $('<div>').append($resForm);
+    $resForm = $('<div>').append($resForm);
 
     $form.find('.has-error').removeClass('has-error').find('.alert-danger').safeRemove();
     $form.find('.non-field-errors').safeRemove();
@@ -233,4 +245,14 @@ export function setErrorsInForm($form, $resForm) {
     });
 
     return hasNoError;
+}
+
+export function jqueryInsertAt($container, index, $newElement) {
+    let lastIndex = $container.children().size();
+    if (index < lastIndex) {
+        $container.children().eq(index).before($newElement);
+    } else {
+        $container.append($newElement);
+    }
+    return this;
 }

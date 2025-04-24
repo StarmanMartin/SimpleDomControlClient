@@ -12,8 +12,9 @@ import {
     CONTROLLER_CLASS, getController, cleanCache, reloadMethodHTML
 } from "./sdc_view.js";
 import {AbstractSDC} from "./AbstractSDC.js";
-import {Global, controllerList, tagList} from "./sdc_controller.js";
+import {Global, controllerList, tagList, resetChildren} from "./sdc_controller.js";
 import {initEvents, setControllerEvents, STD_EVENT_LIST, windowEventHandler} from "./sdc_dom_events.js";
+import {reconcile} from "./sdc_view.js";
 import {trigger} from "./sdc_events.js";
 import {isConnected, close} from "./sdc_server_call.js";
 
@@ -36,7 +37,7 @@ let sdcDomFragment = function (element, props) {
             if (k.startsWith('on')) {
                 $new_elem[0].addEventListener(k.substring(2).toLowerCase(), v);
             } else {
-                if(PROPERTIES_UPDATE[k.toLowerCase()]) {
+                if (PROPERTIES_UPDATE[k.toLowerCase()]) {
                     k = PROPERTIES_UPDATE[k.toLowerCase()];
                 }
                 $new_elem[0].setAttribute(k, v);
@@ -89,7 +90,7 @@ export let app = {
                 }
 
                 app.updateJquery();
-            }else {
+            } else {
                 close();
             }
 
@@ -102,14 +103,14 @@ export let app = {
 
         app.tagNames = tagList();
 
-        for(let [tag, controller] of Object.entries(app.Global)) {
-            if(!controller.$container) Global[tag].$container = getBody();
+        for (let [tag, controller] of Object.entries(app.Global)) {
+            if (!controller.$container) Global[tag].$container = getBody();
         }
 
         return replaceTagElementsInContainer(app.tagNames, getBody(), app.rootController);
     },
 
-    updateJquery: ()=> {
+    updateJquery: () => {
         $.fn.safeReplace = function ($elem) {
             return app.safeReplace($(this), $elem);
         }
@@ -230,7 +231,7 @@ export let app = {
 
     submitFormAndUpdateView: (controller, form, url, method) => {
         let formData = new FormData(form);
-        const redirector = (a)=> {
+        const redirector = (a) => {
             if (a['url-link']) {
                 trigger('onNavLink', a['url-link']);
             } else {
@@ -251,12 +252,12 @@ export let app = {
                         });
                     }
                 })
-                .catch((a,b,c) => {
-                    if(a.status === 301) {
+                .catch((a, b, c) => {
+                    if (a.status === 301) {
                         a = a.responseJSON;
                         redirector(a);
                         resolve(a, b, c);
-                    }else {
+                    } else {
                         reject(a, b, c);
                     }
                 });
@@ -338,22 +339,42 @@ export let app = {
     reloadController: (controller) => {
         return reloadHTMLController(controller).then((html) => {
             let $html = $(html);
-            controller._childController = {};
-            replaceTagElementsInContainer(app.tagNames, $html, controller).then(() => {
-                app.safeEmpty(controller.$container);
-                controller.$container.append($html);
-                app.refresh(controller.$container, controller);
-            });
+            return app.reconcile(controller, $html);
         });
+    },
+
+
+    /**
+     *
+     * @param {AbstractSDC} controller
+     * @param {jquery} $virtualNode
+     * @param {jquery} $realNode
+     */
+    reconcile: (controller, $virtualNode, $realNode = null) => {
+        if (!$realNode) {
+            let $temp = controller.$container.clone().empty();
+            $temp.append($virtualNode);
+            $virtualNode = $temp;
+        }
+
+        $realNode = $realNode ?? controller.$container;
+
+        return app.refresh($virtualNode, controller, true).then(() => {
+            reconcile($virtualNode, $realNode, controller);
+            resetChildren(controller);
+            return controller;
+        });
+
     },
 
     /**
      *
      * @param {jquery} $container
      * @param {AbstractSDC} leafController
+     * @param {bool} silent
      * @return {Promise<jQuery>}
      */
-    refresh: ($container, leafController) => {
+    refresh: ($container, leafController, silent = false) => {
         if (!leafController) {
             leafController = app.getController($container);
         }
@@ -370,13 +391,15 @@ export let app = {
             controller = controller._parentController;
         }
 
-        return replaceTagElementsInContainer(app.tagNames, leafController.$container, leafController).then(() => {
-            reloadMethodHTML(leafController).then(() => {
+        $container ??= leafController.$container;
+
+        return replaceTagElementsInContainer(app.tagNames, $container, leafController).then(() => {
+            reloadMethodHTML(leafController, $container).then(() => {
                 for (let con of controllerList) {
                     setControllerEvents(con);
                 }
 
-                leafController.onRefresh($container);
+                !silent && leafController.onRefresh($container);
             });
 
         });

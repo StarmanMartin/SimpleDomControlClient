@@ -1,5 +1,5 @@
 import {promiseDummyFactory, tagNameToCamelCase, agileAggregation} from "./sdc_utils.js";
-import {loadFilesFromController, runControllerFillContent} from "./sdc_view.js";
+import {CONTROLLER_CLASS, getController, loadFilesFromController, runControllerFillContent} from "./sdc_view.js";
 
 import {runOnInitWithParameter} from "./sdc_params.js";
 
@@ -50,6 +50,22 @@ function setParentController(parentController, controller) {
     }
 
     return (controller._parentController = parentController)
+}
+
+/**
+ * resetChildren resets all children of a controller.
+ *
+ * @param {AbstractSDC} parentController
+ */
+export function resetChildren(parentController) {
+    parentController._childController = {};
+    parentController.find(`.${CONTROLLER_CLASS}`).each(function(){
+        const $this = $(this);
+        const cController = getController($this);
+        if(cController === parentController) {
+            setParentController(parentController, cController);
+        }
+    });
 }
 
 /**
