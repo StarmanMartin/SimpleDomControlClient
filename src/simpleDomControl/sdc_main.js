@@ -353,6 +353,8 @@ export let app = {
     reconcile: (controller, $virtualNode, $realNode = null) => {
         if (!$realNode) {
             let $temp = controller.$container.clone().empty();
+            $temp.data(DATA_CONTROLLER_KEY, null);
+            $temp.removeClass(CONTROLLER_CLASS);
             $temp.append($virtualNode);
             $virtualNode = $temp;
         }
@@ -360,7 +362,7 @@ export let app = {
         $realNode = $realNode ?? controller.$container;
 
         return app.refresh($virtualNode, controller, true).then(() => {
-            reconcile($virtualNode, $realNode, controller);
+            reconcile($virtualNode, $realNode);
             resetChildren(controller);
             return controller;
         });
@@ -369,14 +371,14 @@ export let app = {
 
     /**
      *
-     * @param {jquery} $container
+     * @param {jquery} $dom
      * @param {AbstractSDC} leafController
      * @param {bool} silent
      * @return {Promise<jQuery>}
      */
-    refresh: ($container, leafController, silent = false) => {
+    refresh: ($dom, leafController, silent = false) => {
         if (!leafController) {
-            leafController = app.getController($container);
+            leafController = app.getController($dom);
         }
 
         if (!leafController) {
@@ -391,15 +393,15 @@ export let app = {
             controller = controller._parentController;
         }
 
-        $container ??= leafController.$container;
+        $dom ??= leafController.$container;
 
-        return replaceTagElementsInContainer(app.tagNames, $container, leafController).then(() => {
-            reloadMethodHTML(leafController, $container).then(() => {
+        return replaceTagElementsInContainer(app.tagNames, $dom, leafController).then(() => {
+            reloadMethodHTML(leafController, $dom).then(() => {
                 for (let con of controllerList) {
                     setControllerEvents(con);
                 }
 
-                !silent && leafController.onRefresh($container);
+                !silent && leafController.onRefresh($dom);
             });
 
         });

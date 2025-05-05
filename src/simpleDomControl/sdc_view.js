@@ -1,4 +1,4 @@
-import {controllerFactory, runControlFlowFunctions, tagList} from "./sdc_controller.js";
+import {controllerFactory, runControlFlowFunctions} from "./sdc_controller.js";
 import {getUrlParam} from "./sdc_params.js";
 import {app} from "./sdc_main.js";
 import {trigger} from "./sdc_events.js";
@@ -23,7 +23,7 @@ export function cleanCache() {
  * doms and returns a list of objects containing also the tag name the dom and the tag
  * names of the super controller
  *
- * @param {jquery} $container - jQuery container
+ * @param {$} $container - jQuery container
  * @param {Array<string>} tagNameList - a string list with tag names.
  * @param {AbstractSDC} parentController - controller in surrounding
  * @return {Array} - a array of objects with all register tags found
@@ -377,21 +377,28 @@ export function reconcile($virtualNode, $realNode) {
     const depth = Math.max(...$new.concat($old).map(x => x.depth));
     const op_steps = lcbDiff($old, $new, depth);
     let opIdx = 0;
+    let toRemove = [];
+
     op_steps.forEach(op_step => {
-        console.log($realNode);
         const {op, $element, idx} = op_step;
         if (op.type === 'keep_counterpart') {
 
-           if(op.counterpart.idx + opIdx !== idx) {
-               const elemBefore = op_step.getBefore();
-               if(!elemBefore) {
-                   op_step.getRealParent().$element.prepend(op.counterpart.$element);
-               } else {
-                   op.counterpart.$element.insertAfter(elemBefore.$element);
-               }
-           }
+            if (op.counterpart.idx + opIdx !== idx) {
+                const elemBefore = op_step.getBefore();
+                if (!elemBefore) {
+                    op_step.getRealParent().$element.prepend(op.counterpart.$element);
+                } else {
+                    op.counterpart.$element.insertAfter(elemBefore.$element);
+                }
+            }
+
             syncAttributes(op.counterpart.$element, $element);
-           $element.safeRemove();
+            if ($element.hasClass(CONTROLLER_CLASS)) {
+                $element.data(DATA_CONTROLLER_KEY).$container = op.counterpart.$element;
+                $element.data(DATA_CONTROLLER_KEY, null);
+            }
+
+            toRemove.push($element);
 
         } else if (op.type === 'delete') {
             $element.safeRemove();
@@ -409,6 +416,8 @@ export function reconcile($virtualNode, $realNode) {
 
         }
     });
+
+    toRemove.forEach(($element) => $element.safeRemove());
 }
 
 function syncAttributes($real, $virtual) {
@@ -429,9 +438,7 @@ function syncAttributes($real, $virtual) {
     });
 
     Object.entries($virtual.data()).forEach(([key, value]) => {
-        if (key !== DATA_CONTROLLER_KEY) {
-            $real.data(key, value);
-        }
+        $real.data(key, value);
     });
 }
 

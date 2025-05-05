@@ -71,7 +71,6 @@ const ModelProxyHandler = {
 }
 
 
-
 function parse_hidden_inputs(value) {
 
     let isFloatReg = /^-?\d+\.?\d+$/;
@@ -97,7 +96,6 @@ function parse_hidden_inputs(value) {
 }
 
 
-
 export class Model {
     /**
      *
@@ -105,6 +103,7 @@ export class Model {
      * @param model_query {json}
      */
     constructor(model_name, model_query = {}) {
+        this._onNoOpenRequests = [];
         this.values_list = [];
         this.values = {};
         this.model_name = model_name;
@@ -623,7 +622,7 @@ export class Model {
         if (data.is_error) {
             if (this.open_request.hasOwnProperty(data.event_id)) {
                 this.open_request[data.event_id][1](data);
-                delete this.open_request[data.event_id];
+                this._closeOpenRequest(data.event_id);
             }
             if (data.msg || data.header) {
                 trigger('pushErrorMsg', data.header || '', data.msg || '');
@@ -631,7 +630,7 @@ export class Model {
 
             if (data.type === 'connect') {
                 this.open_request['_connecting_process'][1](data);
-                delete this.open_request['_connecting_process'];
+                this._closeOpenRequest('_connecting_process');
                 this._auto_reconnect = false;
                 this.socket.close();
             }
@@ -645,7 +644,7 @@ export class Model {
                 this._is_connected = true;
                 this._is_conneting_process = false;
                 this.open_request['_connecting_process'][0](data);
-                delete this.open_request['_connecting_process'];
+                this._closeOpenRequest('_connecting_process');
             } else if (data.type === 'load') {
                 const json_res = JSON.parse(data.args.data);
                 this.values_list = [];
@@ -675,9 +674,28 @@ export class Model {
 
             if (this.open_request.hasOwnProperty(data.event_id)) {
                 this.open_request[data.event_id][0](data);
-                delete this.open_request[data.event_id];
+                this._closeOpenRequest(data.event_id);
             }
         }
+    }
+
+    noOpenRequests() {
+        return new Promise(resolve => {
+            if (Object.keys(this.open_request).length === 0) {
+                return resolve();
+            }
+
+            this._onNoOpenRequests.push(resolve);
+        });
+    }
+
+    _closeOpenRequest(event_id) {
+        delete this.open_request[event_id];
+        if (Object.keys(this.open_request).length === 0) {
+            this._onNoOpenRequests.forEach(x => x());
+            this._onNoOpenRequests = [];
+        }
+
     }
 
     _connectToServer() {

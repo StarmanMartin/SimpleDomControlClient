@@ -1,8 +1,9 @@
 /**
  * @jest-environment jsdom
  */
+;
 
-import {app} from './sdc_main.js';
+import {app} from './sdc_main.js'
 
 let spy = [], _originAjax;
 
@@ -62,6 +63,7 @@ export async function controllerFromTestHtml(html, afterLifecycle = null) {
     app._isInit = false;
     app.cleanCache();
     await app.init_sdc();
+
 
     let children = app.rootController.iterateAllChildren();
 

@@ -4,24 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b4ede81-fe43-4a68-9186-e15152e2d80c" name="Changes" comment="v 0.57.9 Update dependencies">
-      <change afterPath="$PROJECT_DIR$/test/view.test.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="4b4ede81-fe43-4a68-9186-e15152e2d80c" name="Changes" comment="v 0.57.9 added LCB algorithm to reconcile function">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tool-versions" beforeDir="false" afterPath="$PROJECT_DIR$/.tool-versions" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SimpleDomControlClient.iml" beforeDir="false" afterPath="$PROJECT_DIR$/SimpleDomControlClient.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dist/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/dist/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/ugly.index.js" beforeDir="false" afterPath="$PROJECT_DIR$/dist/ugly.index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/simpleDomControl/AbstractSDC.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/AbstractSDC.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/simpleDomControl/sdc_controller.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/sdc_controller.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/simpleDomControl/sdc_main.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/sdc_main.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/simpleDomControl/sdc_test_utils.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/sdc_test_utils.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/simpleDomControl/sdc_utils.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/sdc_utils.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/simpleDomControl/sdc_view.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/sdc_view.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/controller.test.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/controller.test.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/yarn.lock" beforeDir="false" afterPath="$PROJECT_DIR$/yarn.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/utils.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/utils.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/view.test.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/view.test.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -64,7 +54,8 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Jest.All Tests.executor": "Run",
-    "Jest.Test reconcile controller.executor": "Debug",
+    "Jest.Controller.executor": "Debug",
+    "Jest.Test reconcile controller.executor": "Run",
     "Jest.Test reconcile.executor": "Run",
     "Jest.jest.config.mjs.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
@@ -102,6 +93,20 @@
     </key>
   </component>
   <component name="RunManager" selected="npm.test">
+    <configuration name="Controller" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
+      <node-interpreter value="project" />
+      <jest-package value="$PROJECT_DIR$/node_modules/jest" />
+      <working-dir value="$PROJECT_DIR$" />
+      <envs>
+        <env name="NODE_OPTIONS" value="--experimental-vm-modules" />
+      </envs>
+      <scope-kind value="SUITE" />
+      <test-file value="$PROJECT_DIR$/test/controller.test.js" />
+      <test-names>
+        <test-name value="Controller" />
+      </test-names>
+      <method v="2" />
+    </configuration>
     <configuration name="Test reconcile controller" type="JavaScriptTestRunnerJest">
       <node-interpreter value="project" />
       <jest-package value="$PROJECT_DIR$/node_modules/jest" />
@@ -163,6 +168,7 @@
     <list>
       <item itemvalue="Jest.jest.config.mjs" />
       <item itemvalue="Jest.Test reconcile controller" />
+      <item itemvalue="Jest.Controller" />
       <item itemvalue="Jest.Test reconcile" />
       <item itemvalue="npm.build" />
       <item itemvalue="npm.test" />
@@ -170,6 +176,7 @@
     <recent_temporary>
       <list>
         <item itemvalue="npm.test" />
+        <item itemvalue="Jest.Controller" />
         <item itemvalue="Jest.Test reconcile" />
       </list>
     </recent_temporary>
@@ -204,7 +211,7 @@
       <workItem from="1741761262308" duration="532000" />
       <workItem from="1741856308927" duration="9000" />
       <workItem from="1745266749102" duration="42527000" />
-      <workItem from="1745433489565" duration="13188000" />
+      <workItem from="1745433489565" duration="22162000" />
     </task>
     <task id="LOCAL-00001" summary="v 0.4.11 add gulp tasks to client bib">
       <option name="closed" value="true" />
@@ -254,7 +261,15 @@
       <option name="project" value="LOCAL" />
       <updated>1741761774404</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="v 0.57.9 added LCB algorithm to reconcile function">
+      <option name="closed" value="true" />
+      <created>1745482240699</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1745482240699</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -267,7 +282,8 @@
     <MESSAGE value="v 0.4.18 build" />
     <MESSAGE value="v 0.56.2 Fixed new version bugs" />
     <MESSAGE value="v 0.57.9 Update dependencies" />
-    <option name="LAST_COMMIT_MESSAGE" value="v 0.57.9 Update dependencies" />
+    <MESSAGE value="v 0.57.9 added LCB algorithm to reconcile function" />
+    <option name="LAST_COMMIT_MESSAGE" value="v 0.57.9 added LCB algorithm to reconcile function" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
@@ -276,34 +292,17 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/test/view.test.js</url>
-          <line>125</line>
+          <condition expression="!$element.data(DATA_CONTROLLER_KEY)" language="JavaScript" />
+          <url>file://$PROJECT_DIR$/src/simpleDomControl/sdc_view.js</url>
+          <line>396</line>
           <properties lambdaOrdinal="-1" />
-          <option name="timeStamp" value="98" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/test/utils.js</url>
-          <line>69</line>
-          <properties lambdaOrdinal="-1" />
-          <option name="timeStamp" value="100" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/test/utils.js</url>
-          <line>55</line>
-          <properties lambdaOrdinal="-1" />
-          <option name="timeStamp" value="101" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/test/utils.js</url>
-          <line>60</line>
-          <properties lambdaOrdinal="-1" />
-          <option name="timeStamp" value="104" />
+          <option name="timeStamp" value="140" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
     <watches-manager>
       <configuration name="JavaScriptTestRunnerJest">
-        <watch expression="op.counterpart" language="JavaScript" />
+        <watch expression="$container.html()" language="JavaScript" />
       </configuration>
     </watches-manager>
   </component>

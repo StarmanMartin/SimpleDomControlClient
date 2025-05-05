@@ -1,3 +1,6 @@
+/**
+ * @jest-environment jsdom
+ */
 
 import {TestItem, TestList} from "./utils.js";
 import {reconcile} from "../src/simpleDomControl/sdc_view.js";
@@ -114,7 +117,6 @@ describe('Controller reconcile', () => {
         const $ctr_div = $(document.createElement('test-list'));
         $body.append($ctr_div);
         await app.init_sdc();
-        await new Promise((resolve) => setTimeout(resolve, 1000))
     });
 
     afterEach(() => {
@@ -122,10 +124,18 @@ describe('Controller reconcile', () => {
         $('body').safeEmpty();
     });
 
-     test('Load Content Split', async () => {
-            console.log($('body').html());
-            const controller = app.getController($('body').children());
+    test('Load Content Split', async () => {
+        const oldList = $('body').find('input').toArray();
+        const controller = app.getController($('body').children());
+        controller.number = 5;
+        await controller.refresh();
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        const newList = $('body').find('input').toArray();
+        expect(newList.length).toBe(5);
+        newList.forEach((x, i) => {
+           expect(x).toBe(oldList[i]);
+        });
 
 
-     });
+    });
 });

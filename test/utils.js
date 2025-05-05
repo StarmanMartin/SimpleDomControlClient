@@ -67,7 +67,7 @@ export class TestList extends AbstractSDC {
             listItems.push(`<test-item data-idx="${i}"></test-item>`);
         }
 
-        return `<div>${listItems.join(' ')}</div>`;
+        return `<div>${listItems.join('\n')}</div>`;
     }
 }
 
@@ -83,7 +83,7 @@ export class TestItem extends AbstractSDC {
     }
 
     onLoad(html) {
-        $(html).append(`<input name="i_${self.idx}">`);
+        $(html).append(`<input name="i_${this.idx}" />`);
         return super.onLoad(html);
     }
 }

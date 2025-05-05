@@ -9,6 +9,7 @@ export class AbstractSDC {
         this._uuid = uuidv4();
         this.contentUrl = '';
         this.contentReload = false;
+        this.parsedContentUrl = null;
         this.events = [];
         this.load_async = false;
         this._isEventsSet = false;
@@ -121,6 +122,10 @@ export class AbstractSDC {
     onRemove() {
         this._runLifecycle('onRemove', arguments)
         return true;
+    }
+
+    noOpenModelRequests( ) {
+        return Promise.all(this._models.map(x => x.noOpenRequests()));
     }
 
     remove() {
