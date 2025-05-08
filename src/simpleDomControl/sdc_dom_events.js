@@ -1,6 +1,6 @@
 import {getController} from './sdc_view.js';
 
-export const STD_EVENT_BLACK_LIST = ['onbeforeunload'];
+export const STD_EVENT_BLACK_LIST = ['onbeforeunload', 'onunload'];
 export const STD_EVENT_LIST = Object.keys(window).filter(key => /^on/.test(key) && !STD_EVENT_BLACK_LIST.includes(key)).map(x => x.slice(2));
 
 export function windowEventHandler(event) {

@@ -35,7 +35,7 @@ export class AbstractSDC {
         /**
          * @type {string}
          */
-        this._tagName = '';
+        this._tagName = Object.getPrototypeOf(this)._tagName ?? '';
 
         /**
          * @type {{string:AbstractSDC}}
@@ -208,7 +208,7 @@ export class AbstractSDC {
             return;
         }
 
-        return callServer(app[1], this._tagName, this.parsedContentUrl, methode, args);
+        return callServer(app[1], this._tagName, this.parsedContentUrl ?? this.contentUrl, methode, args);
     }
 
     /**

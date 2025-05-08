@@ -72,8 +72,10 @@ export let app = {
     tagNames: [],
     Global: Global,
     rootController: null,
+    globalRootController: null,
     _isInit: false,
     _origin_trigger: null,
+    _globalControllerClasses: [],
 
     init_sdc: () => {
         if (!app._isInit) {
@@ -99,15 +101,20 @@ export let app = {
             initEvents();
 
             app.rootController = app.rootController || new AbstractSDC();
+            app.globalRootController = app.globalRootController || new AbstractSDC();
         }
 
         app.tagNames = tagList();
 
-        for (let [tag, controller] of Object.entries(app.Global)) {
-            if (!controller.$container) Global[tag].$container = getBody();
-        }
+        const $globalDiv = $('<div></div>');
+        Global.forEach((tagName) => {
+            const ControllerClass = controllerList[tagName][0];
+            $globalDiv.append(`<${ControllerClass.prototype._tagName}></${ControllerClass.prototype._tagName}>`);
+        });
 
-        return replaceTagElementsInContainer(app.tagNames, getBody(), app.rootController);
+        return replaceTagElementsInContainer(app.tagNames, $globalDiv, app.globalRootController).then(() => {
+            return replaceTagElementsInContainer(app.tagNames, getBody(), app.rootController);
+        });
     },
 
     updateJquery: () => {
@@ -132,11 +139,9 @@ export let app = {
      * @param {AbstractSDC} Controller
      */
     registerGlobal: (Controller) => {
-        let tagName = app.controllerToTag(Controller);
-        let globalController = new Controller();
-        controllerList[tagName] = [globalController, []];
-        globalController._tagName = tagName;
-        window[tagNameToCamelCase(tagName)] = Global[tagNameToCamelCase(tagName)] = globalController;
+        app.register(Controller);
+        let tagName = Controller.prototype._tagName;
+        Global.push(tagName);
     },
 
     cleanCache: () => {
@@ -364,6 +369,7 @@ export let app = {
         return app.refresh($virtualNode, controller, true).then(() => {
             reconcile($virtualNode, $realNode);
             resetChildren(controller);
+            controller.onRefresh();
             return controller;
         });
 

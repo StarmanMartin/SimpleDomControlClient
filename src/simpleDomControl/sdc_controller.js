@@ -3,8 +3,9 @@ import {CONTROLLER_CLASS, getController, loadFilesFromController, runControllerF
 
 import {runOnInitWithParameter} from "./sdc_params.js";
 
-export let Global = {};
+export let Global = [];
 export let controllerList = {};
+
 export function tagList() {
     return Object.keys(controllerList);
 }
@@ -59,10 +60,10 @@ function setParentController(parentController, controller) {
  */
 export function resetChildren(parentController) {
     parentController._childController = {};
-    parentController.find(`.${CONTROLLER_CLASS}`).each(function(){
+    parentController.find(`.${CONTROLLER_CLASS}`).each(function () {
         const $this = $(this);
         const cController = getController($this);
-        if(cController === parentController) {
+        if (cController === parentController) {
             setParentController(parentController, cController);
         }
     });
@@ -117,13 +118,15 @@ function controllerFactoryInstance(parentController, $element, tagName, superTag
  * @return {AbstractSDC} -  new Controller
  */
 export function controllerFactory(parentController, $element, tagName, superTagNameList) {
-    let gTagName = tagNameToCamelCase(tagName);
-    if (Global[gTagName]) {
-        let controller = Global[gTagName];
-        setParentController(parentController, controller);
-        controller.$container = $element;
 
-        return controller;
+    if (Global.includes(tagName)) {
+        let gTagName = tagNameToCamelCase(tagName);
+        if (!window[gTagName]) {
+            window[gTagName] = controllerFactoryInstance(parentController, $element, tagName, superTagNameList);
+        }
+
+        window[gTagName].$container = $element;
+        return window[gTagName];
     }
 
     return controllerFactoryInstance(parentController, $element, tagName, superTagNameList);
