@@ -3,7 +3,7 @@
  */
 
 
-import {app, AbstractSDC, setEvent, on, allOff, trigger} from '../dist/index.js';
+import {app, AbstractSDC, setEvent, on, allOff, trigger} from '../src/index.js';
 import * as sdc_view from '../src/simpleDomControl/sdc_view.js';
 
 

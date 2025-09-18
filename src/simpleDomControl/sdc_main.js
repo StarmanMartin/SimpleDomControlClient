@@ -18,7 +18,7 @@ import {
   updateEventAndTriggerOnRefresh,
   prepareRefreshProcess
 } from "./sdc_controller.js";
-import {initEvents, setControllerEvents, STD_EVENT_LIST, windowEventHandler} from "./sdc_dom_events.js";
+import {initEvents, STD_EVENT_LIST, windowEventHandler} from "./sdc_dom_events.js";
 import {reconcile} from "./sdc_view.js";
 import {trigger} from "./sdc_events.js";
 import {isConnected, close} from "./sdc_server_call.js";

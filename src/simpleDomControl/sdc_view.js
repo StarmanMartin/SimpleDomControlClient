@@ -551,7 +551,7 @@ function lcbDiff(oldNodes, newNodes, depth) {
 
 export function refresh($dom, leafController, process = null) {
   if (!leafController) {
-    leafController = app.getController($dom);
+    leafController = getController($dom);
   }
 
   if (!leafController) {
