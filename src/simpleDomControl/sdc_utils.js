@@ -86,7 +86,7 @@ const copyProps = (targetClass, sourceClass) => {
  *
  * @param {typeof AbstractSDC} baseClass
  * @param {typeof AbstractSDC} mixins
- * @returns {AbstractSDC}
+ * @returns {typeof AbstractSDC}
  */
 export function agileAggregation(baseClass, ...mixins) {
 

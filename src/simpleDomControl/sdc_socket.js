@@ -179,7 +179,7 @@ export class Model {
         });
     }
 
-    listView(filter = {}, cb_resolve = null, cb_reject = null) {
+    listView(filter = {}, cb_resolve = null, cb_reject = null, template_context = {}) {
         let $div_list = $('<div class="container-fluid">');
         this.isConnected().then(() => {
             const id = uuidv4();
@@ -190,7 +190,8 @@ export class Model {
                 args: {
                     model_name: this.model_name,
                     model_query: this.model_query,
-                    filter: filter
+                    filter,
+                    template_context
                 }
             }));
 
@@ -207,7 +208,8 @@ export class Model {
         return $div_list;
     }
 
-    detailView(pk = -1, cb_resolve = null, cb_reject = null) {
+    detailView(pk = null, cb_resolve = null, cb_reject = null, template_context = {}) {
+        pk = pk ?? -1;
         pk = parseInt(pk);
         if (isNaN(pk)) {
             pk = -1;
@@ -233,7 +235,8 @@ export class Model {
                 args: {
                     model_name: this.model_name,
                     model_query: this.model_query,
-                    pk: pk
+                    pk,
+                    template_context
                 }
             }));
 

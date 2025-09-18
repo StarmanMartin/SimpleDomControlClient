@@ -79,6 +79,23 @@ describe('Test reconcile', () => {
 
     });
 
+    test('Load content 3', () => {
+        const a = '<div>' +
+            '<div><p>A1</p><p>B1</p></div>' +
+            '<div><p>A2</p><p>B2</p></div>' +
+            '</div>';
+
+        const b = '<div>' +
+            '<div><p>A2</p><p>B3</p></div>' +
+            '<div><p>A2</p><p>B4</p></div>' +
+            '</div>';
+        const $b = $(b);
+        const $a = $(a);
+        reconcile($b, $a);
+        expect($a.html()).toBe($(b).html());
+
+    });
+
 
     test('Load Content Split', async () => {
         const a = '<div>' +
@@ -133,7 +150,7 @@ describe('Controller reconcile', () => {
         const newList = $('body').find('input').toArray();
         expect(newList.length).toBe(5);
         newList.forEach((x, i) => {
-           expect(x).toBe(oldList[i]);
+            expect(x).toBe(oldList[i]);
         });
 
 

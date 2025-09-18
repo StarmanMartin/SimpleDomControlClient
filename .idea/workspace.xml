@@ -7,10 +7,7 @@
     <list default="true" id="4b4ede81-fe43-4a68-9186-e15152e2d80c" name="Changes" comment="v 0.57.9 added LCB algorithm to reconcile function">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dist/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/dist/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/simpleDomControl/AbstractSDC.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/AbstractSDC.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/simpleDomControl/sdc_main.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/sdc_main.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/simpleDomControl/sdc_view.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/sdc_view.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/utils.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/utils.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/test/view.test.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/view.test.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -78,7 +75,7 @@
     "nodejs_interpreter_path": "/home/martin/.asdf/installs/nodejs/22.14.0/bin/node",
     "nodejs_package_manager_path": "yarn",
     "npm.build.executor": "Run",
-    "npm.test.executor": "Run",
+    "npm.test.executor": "Debug",
     "project.structure.last.edited": "Modules",
     "project.structure.proportion": "0.0",
     "project.structure.side.proportion": "0.0",
@@ -92,7 +89,7 @@
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
-  <component name="RunManager" selected="npm.test">
+  <component name="RunManager" selected="Jest.Test reconcile">
     <configuration name="Controller" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
       <node-interpreter value="project" />
       <jest-package value="$PROJECT_DIR$/node_modules/jest" />
@@ -175,17 +172,17 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Jest.Test reconcile" />
         <item itemvalue="npm.test" />
         <item itemvalue="Jest.Controller" />
-        <item itemvalue="Jest.Test reconcile" />
       </list>
     </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-PY-243.25659.43" />
-        <option value="bundled-python-sdk-181015f7ab06-4df51de95216-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.25659.43" />
+        <option value="bundled-js-predefined-d6986cc7102b-f27c65a3e318-JavaScript-PY-251.23774.444" />
+        <option value="bundled-python-sdk-890ed5b35930-d9c5bdb153f4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.23774.444" />
       </set>
     </attachedChunks>
   </component>
@@ -212,6 +209,7 @@
       <workItem from="1741856308927" duration="9000" />
       <workItem from="1745266749102" duration="42527000" />
       <workItem from="1745433489565" duration="22162000" />
+      <workItem from="1746775623778" duration="14038000" />
     </task>
     <task id="LOCAL-00001" summary="v 0.4.11 add gulp tasks to client bib">
       <option name="closed" value="true" />
@@ -289,20 +287,13 @@
     <settings-migrated>true</settings-migrated>
   </component>
   <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="javascript">
-          <condition expression="!$element.data(DATA_CONTROLLER_KEY)" language="JavaScript" />
-          <url>file://$PROJECT_DIR$/src/simpleDomControl/sdc_view.js</url>
-          <line>396</line>
-          <properties lambdaOrdinal="-1" />
-          <option name="timeStamp" value="140" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
     <watches-manager>
       <configuration name="JavaScriptTestRunnerJest">
-        <watch expression="$container.html()" language="JavaScript" />
+        <watch expression="MAIN.html()" language="JavaScript" />
+        <watch expression="parseInt(i/2)" language="JavaScript" />
+        <watch expression="$element.html()" language="JavaScript" />
+        <watch expression="op.counterpart.$element.html()" language="JavaScript" />
+        <watch expression="OPS" language="JavaScript" />
       </configuration>
     </watches-manager>
   </component>

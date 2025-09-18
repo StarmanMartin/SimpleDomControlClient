@@ -71,7 +71,7 @@ export class AbstractSDC {
      *
      */
     _runLifecycle(method, args) {
-        if (app.DEBUG) {
+        if (app.DEBUG && !this._isMixin) {
             console.debug(method, this._tagName);
         }
 
@@ -94,7 +94,7 @@ export class AbstractSDC {
     }
 
     onInit() {
-        if (app.DEBUG) {
+        if (app.DEBUG && !this._isMixin) {
             console.DEBUG(Array.apply(null, arguments), this._tagName);
         }
     }

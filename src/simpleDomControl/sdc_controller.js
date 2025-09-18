@@ -1,7 +1,15 @@
 import {promiseDummyFactory, tagNameToCamelCase, agileAggregation} from "./sdc_utils.js";
-import {CONTROLLER_CLASS, getController, loadFilesFromController, runControllerFillContent} from "./sdc_view.js";
+import {
+    CONTROLLER_CLASS,
+    getController,
+    loadFilesFromController,
+    refresh,
+    runControllerFillContent
+} from "./sdc_view.js";
 
 import {runOnInitWithParameter} from "./sdc_params.js";
+import {setControllerEvents} from "./sdc_dom_events.js";
+import {app} from "./sdc_main.js";
 
 export let Global = [];
 export let controllerList = {};
@@ -81,7 +89,7 @@ export function resetChildren(parentController) {
  * @param {AbstractSDC} parentController - Controller of the parent DOM
  * @param {jquery} $element - The current DOM jQuery
  * @param {string} tagName - the registered tag name of the current DOM
- * @param {string} superTagNameList - tag names of super controller
+ * @param {Array<string>} superTagNameList - tag names of super controller
  * @return {AbstractSDC} -  new Controller
  */
 function controllerFactoryInstance(parentController, $element, tagName, superTagNameList) {
@@ -114,7 +122,7 @@ function controllerFactoryInstance(parentController, $element, tagName, superTag
  * @param {AbstractSDC} parentController - Controller of the parent DOM
  * @param {jquery} $element - The current DOM jQuery
  * @param {string} tagName - the registered tag name of the current DOM
- * @param {string} superTagNameList - tag names of super controller
+ * @param {Array<string>} superTagNameList - tag names of super controller
  * @return {AbstractSDC} -  new Controller
  */
 export function controllerFactory(parentController, $element, tagName, superTagNameList) {
@@ -188,13 +196,14 @@ function runControllerLoad(controller) {
  * 4. refresh()
  *
  * @param controller
+ * @param {Object} process - Process object containing the refresh process
  */
-export function runControlFlowFunctions(controller) {
+export function runControlFlowFunctions(controller, process ) {
     const prom_controller = runControllerLoad(controller)
         .then(function ($html) {
             return runControllerShow(controller, $html);
         }).then(() => {
-            return runRefresh(controller);
+            return runRefresh(controller, process);
         }).catch(function ($html) {
             return runControllerFillContent(controller, $html);
         });
@@ -209,7 +218,47 @@ export function runControlFlowFunctions(controller) {
 /**
  *
  * @param {AbstractSDC} controller
+ * @param {Object} process - Process object containing the refresh process
  */
-export function runRefresh(controller) {
-    return controller.refresh && controller.refresh();
+export function runRefresh(controller, process) {
+    return refresh(null, controller, process);
 }
+
+function getParentList(controller) {
+    let controllerList = [];
+    while (controller) {
+        controller._isEventsSet = false;
+        controllerList.unshift(controller);
+        controller = controller._parentController;
+    }
+    return controllerList
+}
+
+/**
+ *
+ * @param {Object} process - Process object containing the refresh process
+ */
+export function updateEventAndTriggerOnRefresh(process) {
+    const parentList = getParentList(process.controller[0]);
+    const controllerList = parentList.concat(process.controller.slice(1));
+
+    for (let con of controllerList) {
+        setControllerEvents(con);
+        con.onRefresh(process.controller[0]);
+    }
+}
+
+
+export function prepareRefreshProcess(refreshProcess, controller) {
+    let isRunningProcess = Boolean(refreshProcess);
+
+    if (!isRunningProcess) {
+      refreshProcess = {uuids: new Set([controller._uuid]), controller: [controller]};
+    } else if (!refreshProcess.uuids.has(controller._uuid)) {
+      refreshProcess.uuids.add(controller._uuid);
+      refreshProcess.controller.push(controller);
+    }
+
+    return {isRunningProcess, refreshProcess};
+}
+
