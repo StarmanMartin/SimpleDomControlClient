@@ -336,8 +336,12 @@ function _reloadMethodHTML(controller, $dom, process) {
       plist.push(Promise.resolve(result).then((x) => {
         let $newContent = $(`<div></div>`);
         $newContent.append(x);
-        $newContent = $this.clone().empty().append($newContent);
-        return app.reconcile(controller, $newContent, $this, process);
+
+        if ($this.html() === '') {
+          $this.append('<div></div>');
+        }
+
+        return app.reconcile(controller, $newContent, $this.children(), process);
       }));
     }
 
@@ -363,7 +367,7 @@ function getNodeKey(node) {
   return res.join('__');
 }
 
-function reconcileTree($element, id = [], parent = null) {
+function reconcileTree({$element, id = [], parent = null}) {
   id.push(getNodeKey($element));
   const obj = {
     $element,
@@ -379,14 +383,19 @@ function reconcileTree($element, id = [], parent = null) {
     parent
   };
   obj.getIdx.bind(obj);
-  return [obj].concat($element.contents().toArray().map((x) => reconcileTree($(x), id.slice(), obj)).flat());
+  return [obj].concat($element.contents().toArray().map((x) => reconcileTree({
+    $element: $(x),
+    id: id.slice(),
+    parent: obj
+  })).flat());
 
 }
 
 
 export function reconcile($virtualNode, $realNode) {
-  const $old = reconcileTree($realNode);
-  const $new = reconcileTree($virtualNode);
+
+  const $old = reconcileTree({$element: $realNode});
+  const $new = reconcileTree({$element: $virtualNode});
   $old.map((x, i) => x.idx = i);
   $new.map((x, i) => x.idx = i);
   const depth = Math.max(...$new.concat($old).map(x => x.depth));
@@ -504,7 +513,7 @@ function lcbDiff(oldNodes, newNodes, depth) {
 
   function getBefore(element, idx) {
     const startDepth = element.depth;
-    while (idx >= 0 && element.depth >= startDepth) {
+    while (idx >= 1 && element.depth >= startDepth) {
       idx -= 1;
       element = newNodes[idx];
       if (element.depth === startDepth) {
