@@ -1,6 +1,6 @@
 {
   "name": "sdc_client",
-  "version": "0.57.14",
+  "version": "0.57.15",
   "description": "Simple Dom Control",
   "main": "src/index.js",
   "type": "module",
