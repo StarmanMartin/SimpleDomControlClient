@@ -4,7 +4,7 @@ import {
   runControlFlowFunctions,
   updateEventAndTriggerOnRefresh
 } from "./sdc_controller.js";
-import {getUrlParam} from "./sdc_params.js";
+import {getUrlParam, prepareData} from "./sdc_params.js";
 import {app} from "./sdc_main.js";
 import {trigger} from "./sdc_events.js";
 
@@ -330,7 +330,8 @@ function _reloadMethodHTML(controller, $dom, process) {
 
 
     if (typeof result === 'function') {
-      result = result.bind(controller)($this.data());
+      const newData = prepareData($this.data());
+      result = result.bind(controller)(newData);
     }
     if (result !== undefined) {
       plist.push(Promise.resolve(result).then((x) => {
@@ -376,7 +377,7 @@ function reconcileTree({$element, id = [], parent = null}) {
     idx: 0,
     getRealParent: () => parent,
     getIdx: function () {
-      this.idx = (this.getRealParent()?.getIdx() ?? -1) + $element.index() + 1;
+      this.idx = Math.max(0, (this.getRealParent()?.getIdx() ?? -1) + $element.index() + 1);
       return this.idx;
     },
     op: null,
@@ -405,38 +406,40 @@ export function reconcile($virtualNode, $realNode) {
   window.OPS = op_steps;
 
   op_steps.forEach((op_step, i) => {
-    const {op, $element, idx} = op_step;
+      const {op, $element, idx} = op_step;
 
-    if (op.type === 'keep_counterpart') {
-      let cIdx = op.counterpart.getIdx();
-      if (cIdx !== idx) {
-        const elemBefore = op_step.getBefore();
-        if (!elemBefore) {
-          op_step.getRealParent().$element.prepend(op.counterpart.$element);
-        } else {
-          op.counterpart.$element.insertAfter(elemBefore.$element);
+      if (op.type === 'keep_counterpart') {
+        let cIdx = op.counterpart.getIdx();
+        if (cIdx !== idx) {
+          const elemBefore = op_step.getBefore();
+          if (!elemBefore) {
+            op_step.getRealParent().$element.prepend(op.counterpart.$element);
+          } else {
+            op.counterpart.$element.insertAfter(elemBefore.$element);
+          }
         }
-      }
 
-      syncAttributes(op.counterpart.$element, $element);
-      if ($element.hasClass(CONTROLLER_CLASS)) {
-        $element.data(DATA_CONTROLLER_KEY).$container = op.counterpart.$element;
-        $element.data(DATA_CONTROLLER_KEY, null);
-      }
+        syncAttributes(op.counterpart.$element, $element);
+        if ($element.hasClass(CONTROLLER_CLASS)) {
+          $element.data(DATA_CONTROLLER_KEY).$container = op.counterpart.$element;
+          $element.data(DATA_CONTROLLER_KEY, null);
+        }
 
-      toRemove.push($element);
-    } else if (op.type === 'delete') {
-      $element.safeRemove();
-    } else if (op.type === 'insert') {
-      const {after, target} = op_step.op;
-      if (after) {
-        $element.insertAfter(after.$element);
-      } else if (target) {
-        target.$element.prepend($element);
-      }
+        toRemove.push($element);
+      } else if (op.type === 'delete') {
+        $element.safeRemove();
+      } else if (op.type === 'insert') {
+        const {after, target} = op_step.op;
+        if (after) {
+          $element.insertAfter(after.$element);
+        } else if (target) {
+          target.$element.prepend($element);
+        }
 
+      }
     }
-  });
+  )
+  ;
 
   toRemove.forEach(($element) => $element.safeRemove());
 }
@@ -572,7 +575,7 @@ export function refresh($dom, leafController, process = null) {
   $dom ??= leafController.$container;
 
   return replaceTagElementsInContainer(app.tagNames, $dom, leafController, process).then(() => {
-    reloadMethodHTML(leafController, $dom, refreshProcess).then(() => {
+    return reloadMethodHTML(leafController, $dom, refreshProcess).then(() => {
       if (!isRunningProcess) {
         updateEventAndTriggerOnRefresh(refreshProcess);
       }
