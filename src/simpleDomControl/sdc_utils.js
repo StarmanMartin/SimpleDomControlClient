@@ -4,7 +4,7 @@
  * @private
  */
 let _$body;
-const arg_names_reg = /([^\s,]+)/g;
+const arg_names_reg = /((?<=^|,\s*)[^\s,]+)/g;
 const commend_reg = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
 
 /**

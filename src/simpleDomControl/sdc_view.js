@@ -89,7 +89,7 @@ function replacePlaceholderController(controller, url, urlValues) {
  * @param {object} args - get args.
  * @param tag - a normalized tag-name as string.
  * @param hardReload - true if the file has to be reloaded every time.
- * @returns {Promise<Boolean>} - waits for the file to be loaded.
+ * @returns {Promise<jQuery|Boolean>} - waits for the file to be loaded.
  */
 function loadHTMLFile(path, args, tag, hardReload) {
   if (!path) {
@@ -136,7 +136,7 @@ function replaceAllTagElementsInContainer($container, parentController, process 
  * correct URL. Also parses the url parameter
  *
  * @param {AbstractSDC} controller - controller object
- * @returns {string} - the correct URL with prefix.
+ * @returns {{url: String, args: Array}} - the correct URL with prefix.
  */
 function parseContentUrl(controller) {
   let url = controller.contentUrl;
@@ -187,7 +187,7 @@ export function getController($elem) {
 export function loadFilesFromController(controller) {
   let getElements = {args: {}};
   if (controller.contentUrl) {
-    getElements = parseContentUrl(controller, controller.contentUrl);
+    getElements = parseContentUrl(controller);
     controller.contentUrl = getElements.url;
   }
 
@@ -219,7 +219,7 @@ export function loadFilesFromController(controller) {
  */
 export function reloadHTMLController(controller) {
   if (controller.contentUrl) {
-    let getElements = parseContentUrl(controller, controller.contentUrl);
+    let getElements = parseContentUrl(controller);
     controller.contentUrl = getElements.url;
     return loadHTMLFile(controller.contentUrl, getElements.args, controller._tagName, controller.contentReload);
   }
@@ -333,7 +333,7 @@ function _reloadMethodHTML(controller, $dom, process) {
       const newData = prepareData($this.data());
       result = result.bind(controller)(newData);
     }
-    if (result !== undefined) {
+    if (result) {
       plist.push(Promise.resolve(result).then((x) => {
         let $newContent = $(`<div></div>`);
         $newContent.append(x);

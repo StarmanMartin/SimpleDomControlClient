@@ -3,6 +3,22 @@ import {getController} from './sdc_view.js';
 export const STD_EVENT_BLACK_LIST = ['onbeforeunload', 'onunload'];
 export const STD_EVENT_LIST = Object.keys(window).filter(key => /^on/.test(key) && !STD_EVENT_BLACK_LIST.includes(key)).map(x => x.slice(2));
 
+function checkIfEventFits(ev_type, e, target) {
+    let elementUnderMouse;
+    switch (ev_type) {
+        case "mouseleave":
+        case "mouseout":
+            elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
+            return target !== elementUnderMouse && !target.contains(elementUnderMouse);
+        case "mouseenter":
+        case "mousein":
+            elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
+            return target !== elementUnderMouse && !target.contains(elementUnderMouse);
+        default:
+            return true;
+    };
+}
+
 export function windowEventHandler(event) {
     let ev_type = event.type;
     if (event.hasOwnProperty('namespace') && event.namespace && event.namespace.length) ev_type += `.${event.namespace}`;
@@ -15,7 +31,7 @@ export function windowEventHandler(event) {
     event.stopPropagation = () => is_last_elem = is_done = true;
     while ($elm.length) {
         let attrs = $elm.attr(`sdc_${ev_type}`);
-        if (attrs) {
+        if (attrs && checkIfEventFits(ev_type, event, $elm[0])) {
             if (!controller) {
                 controller = getController($elm);
                 if (!controller) return;

@@ -297,13 +297,13 @@ export class AbstractSDC {
         if (!this._isMixin) {
             e.stopPropagation();
             e.preventDefault();
-            let model = $form.data('model');
+            let {model, form_name} = $form.data();
             const values = model.syncForm($form);
             for (let instance_value of values) {
                 p_list.push(new Promise((resolve, reject) => {
                     let prom;
                     if (instance_value.pk !== null && instance_value.pk >= 0) {
-                        prom = model.save(instance_value.pk);
+                        prom = model.save(instance_value.pk, form_name);
                     } else {
                         prom = model.create(instance_value);
                     }
