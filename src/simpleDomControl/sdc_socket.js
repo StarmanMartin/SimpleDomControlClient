@@ -193,16 +193,23 @@ export class Model {
   }
 
   listView(filter = {}, cbResolve = null, cbReject = null, templateContext = {}) {
-    return this.view({filter, cbResolve, cbReject, templateContext})
+    return this.view({filter, cbResolve, cbReject, templateContext, event_type: 'list_view'})
   }
 
-  view({viewName = 'html_list_template', filter = {}, cbResolve = null, cbReject = null, templateContext = {}}) {
+  view({
+         viewName = 'html_list_template',
+         filter = {},
+         cbResolve = null,
+         cbReject = null,
+         templateContext = {},
+         event_type = 'named_view'
+       }) {
     let $div_list = $('<div class="container-fluid">');
     this.isConnected().then(() => {
       const id = uuidv4();
       this.socket.send(JSON.stringify({
         event: 'model',
-        event_type: 'named_view',
+        event_type,
         event_id: id,
         args: {
           view_name: viewName,
