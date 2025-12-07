@@ -161,27 +161,34 @@ export let app = {
   /**
    *
    * @param {AbstractSDC} Controller
+   * @param overwrite
    */
-  register: (Controller) => {
+  register: (Controller, overwrite = false) => {
     let tagName = app.controllerToTag(Controller);
-    controllerList[tagName] = [Controller, []];
-    Controller.prototype._tagName = tagName;
-    return {
-      /**
-       *
-       * @param {Array<string>} mixins Controller tag names
-       */
-      addMixin: (...mixins) => {
-        for (let mixin of mixins) {
-          let mixinName;
-          if (typeof mixin === "string") {
-            mixinName = camelCaseToTagName(mixin);
-          } else if (mixin) {
-            mixinName = app.controllerToTag(mixin)
+    if (!overwrite[tagName] || overwrite) {
+      overwrite[tagName] = [Controller, []];
+      Controller.prototype._tagName = tagName;
+
+      return {
+        /**
+         *
+         * @param {Array<string>} mixins Controller tag names
+         */
+        addMixin: (...mixins) => {
+          for (let mixin of mixins) {
+            let mixinName;
+            if (typeof mixin === "string") {
+              mixinName = camelCaseToTagName(mixin);
+            } else if (mixin) {
+              mixinName = app.controllerToTag(mixin)
+            }
+            controllerList[tagName][1].push(mixinName);
           }
-          controllerList[tagName][1].push(mixinName);
         }
       }
+    }
+    return {
+      addMixin: (...mixins) => {}
     }
   },
 

@@ -35,14 +35,16 @@ function pre_compile_javascript() {
             if (a) controller_name = a[1];
           }
           if (!on_init_p_name) {
-            let a = element.match(/^\s*onInit\s*\((.*)\)\s*\{/);
-            if (a) on_init_p_name = a[1].split(/\s*,\s*/).join('", "');
+            let fnStr = element.match(/^\s*onInit\s*\((.*)\)\s*\{/);
+            if (fnStr) {
+              on_init_p_name = fnStr[1].match(/(?<=^|,\s?)[^=\s,]+/g);
+            }
           }
 
 
         });
         if (file_content && controller_name && on_init_p_name) {
-          file_content.push(`${controller_name}.prototype._on_init_params = function() {return ["${on_init_p_name}"]; };`);
+          file_content.push(`${controller_name}.prototype._on_init_params = function() {return ["${on_init_p_name.join('", "')}"]; };`);
           obj.contents = Buffer.from(file_content.join('\n'));
         }
 

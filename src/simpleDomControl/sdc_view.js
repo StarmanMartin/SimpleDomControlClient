@@ -85,25 +85,24 @@ function replacePlaceholderController(controller, url, urlValues) {
  *
  * If the HTML file is loaded already the function takes no action.
  *
- * @param path - a content URL from the controller.
+ * @param {AbstractSDC} controller - a content URL from the controller.
  * @param {object} args - get args.
- * @param tag - a normalized tag-name as string.
- * @param hardReload - true if the file has to be reloaded every time.
  * @returns {Promise<jQuery|Boolean>} - waits for the file to be loaded.
  */
-function loadHTMLFile(path, args, tag, hardReload) {
-  if (!path) {
+function loadHTMLFile(controller, args) {
+  const {contentUrl, _tagName, contentReload} = controller
+  if (!contentUrl) {
     return Promise.resolve(false);
-  } else if (htmlFiles[tag]) {
-    return Promise.resolve(htmlFiles[tag])
+  } else if (htmlFiles[_tagName]) {
+    return Promise.resolve(htmlFiles[_tagName])
   }
 
   args.VERSION = app.VERSION;
   args._method = 'content';
 
-  return $.get(path, args).then(function (data) {
-    if (!hardReload) {
-      htmlFiles[tag] = data;
+  return $.get(contentUrl, args).then(function (data) {
+    if (!contentReload) {
+      htmlFiles[_tagName] = data;
     }
 
     return data;
@@ -112,7 +111,9 @@ function loadHTMLFile(path, args, tag, hardReload) {
       const data = err.responseJSON;
       trigger('_RedirectOnView', data['url-link']);
     }
-    trigger('navLoaded', {'controller_name': () => err.status});
+    if(typeof controller.confirmPageLoaded === 'function') {
+      trigger('navLoaded', {'controller_name': () => err.status});
+    }
 
     throw `<sdc-error data-code="${err.status}">${err.responseText}</sdc-error>`;
   });
@@ -192,7 +193,7 @@ export function loadFilesFromController(controller) {
   }
 
   return Promise.all([
-    loadHTMLFile(controller.contentUrl, getElements.args, controller._tagName, controller.contentReload)
+    loadHTMLFile(controller, getElements.args)
   ]).then(function (results) {
     let htmlFile = results[0];
     if (htmlFile) {
@@ -221,7 +222,7 @@ export function reloadHTMLController(controller) {
   if (controller.contentUrl) {
     let getElements = parseContentUrl(controller);
     controller.contentUrl = getElements.url;
-    return loadHTMLFile(controller.contentUrl, getElements.args, controller._tagName, controller.contentReload);
+    return loadHTMLFile(controller, getElements.args);
   }
 
   return new Promise(resolve => {

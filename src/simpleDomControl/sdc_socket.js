@@ -561,7 +561,7 @@ export class Model {
     return new Promise((resolve, reject) => {
       if (this._is_connected) {
         resolve();
-      } else if (!this._is_conneting_process) {
+      } else if (!this._is_conneting_process || !this.open_request['_connecting_process']) {
         this._is_conneting_process = true;
         this.open_request['_connecting_process'] = [() => {
         }, () => {
