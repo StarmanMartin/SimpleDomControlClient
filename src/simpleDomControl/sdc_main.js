@@ -165,8 +165,8 @@ export let app = {
    */
   register: (Controller, overwrite = false) => {
     let tagName = app.controllerToTag(Controller);
-    if (!overwrite[tagName] || overwrite) {
-      overwrite[tagName] = [Controller, []];
+    if (!controllerList[tagName] || overwrite) {
+      controllerList[tagName] = [Controller, []];
       Controller.prototype._tagName = tagName;
 
       return {
