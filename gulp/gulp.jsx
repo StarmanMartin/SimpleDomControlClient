@@ -7,10 +7,14 @@ const exec = require('gulp-exec');
 const dotenv = require("dotenv");
 const gulp = require('gulp');
 
-function scss() {
-  return src('./src/*.scss', {follow: true})
-    .pipe(sass().on('error', sass.logError))
-    .pipe(dest('../static'));
+function scss(bundle_mode=false) {
+  const src_path = bundle_mode ? './src/*/*.scss' : './src/*.scss';
+  const dest_path = bundle_mode ? './bin' : '../static';
+  return function scss() {
+    return src(src_path, {follow: true})
+      .pipe(sass().on('error', sass.logError))
+      .pipe(dest(dest_path));
+  }
 }
 
 /**
@@ -35,9 +39,9 @@ function pre_compile_javascript() {
             if (a) controller_name = a[1];
           }
           if (!on_init_p_name) {
-            let fnStr = element.match(/^\s*onInit\s*\((.*)\)\s*\{/);
+            let fnStr = element.match(/^\s*(async)?\s*onInit\s*\((.*)\)\s*\{/);
             if (fnStr) {
-              on_init_p_name = fnStr[1].match(/(?<=^|,\s?)[^=\s,]+/g);
+              on_init_p_name = fnStr[2].match(/(?<=^|,\s?)[^=\s,]+/g);
             }
           }
 
@@ -97,7 +101,7 @@ exports.sdc_watch_scss = function () {
   const watcher = gulp.watch('./src/**/*.scss', {followSymlinks: true});
   watcher.on('change', (a) => {
     console.log(`${a} has changed! SCSS is recompiling...`);
-    scss().on('end', () => {
+    scss()().on('end', () => {
       console.log(`... recompiling done!`);
     });
   });
@@ -128,10 +132,15 @@ exports.sdc_watch_webpack_factory = (webpack_task) => {
 };
 
 exports.sdc_default_build_factory = (webpack_task) => {
-  return series(link_files, parallel(scss, webpack_series_factory(webpack_task)));
+  return series(link_files, parallel(scss(), webpack_series_factory(webpack_task)));
 };
 
-exports.sdc_scss = scss;
+exports.sdc_default_bundle_factory = (webpack_task) => {
+  return series(link_files, parallel(scss(true), webpack_series_factory(webpack_task)));
+};
+
+exports.sdc_scss = scss();
+exports.sdc_bundle_scss = scss();
 exports.sdc_clean = clean;
 exports.sdc_link_files = link_files;
 exports.sdc_pre_compile_javascript = pre_compile_javascript;
