@@ -316,7 +316,7 @@ export class AbstractSDC {
                         }
                         resolve(res);
                     }).catch((data) => {
-                        setErrorsInForm($form, $(data.html));
+                        this.reconcile($(`<div class="container-fluid">${data.html}</div>`), $form.find('.container-fluid').first());
                         this.submit_model_form_error && this.submit_model_form_error(data);
                         for(const controller of this.iterateAllChildren()) {
                             controller.submit_model_form_error && controller.submit_model_form_error(data);
