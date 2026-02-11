@@ -1,6 +1,6 @@
 {
   "name": "sdc_client",
-  "version": "0.58.0",
+  "version": "0.58.2",
   "description": "Simple Dom Control",
   "main": "dist/ugly.index.js",
   "type": "module",
@@ -29,6 +29,7 @@
     "@babel/preset-react": "^7.26.3",
     "@babel/register": "^7.25.9",
     "babel-loader": "^10.0.0",
+    "baseline-browser-mapping": "^2.9.19",
     "dotenv": "^16.4.7",
     "glob-parent": "^6.0.2",
     "gulp": "^5.0.0",
@@ -41,7 +42,7 @@
     "sass": "^1.85.1",
     "through2": "^4.0.2",
     "vinyl-named": "^1.1.0",
-    "webpack": "^5.98.0",
+    "webpack": "^5.104.1",
     "webpack-stream": "^7.0.0"
   },
   "overrides": {
