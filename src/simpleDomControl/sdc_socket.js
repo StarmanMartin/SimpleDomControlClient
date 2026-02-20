@@ -289,20 +289,28 @@ export class Model {
 
     let self = this;
     $forms.each(function () {
-      if (!this.hasAttribute('data-model_pk')) {
+      let pk = $(this).data('model_pk');
+      let instance = null;
+      if(pk === -1 && (self.values.pk === undefined || self.values.pk === -1)) {
+        instance = self.values;
+      } else if(pk !== undefined && pk !== null) {
+        instance = self.byPk(pk);
+      }
+      if (!instance) {
         return;
       }
-      let pk = $(this).data('model_pk');
-      let instance = self.byPk(pk);
+
       for (let form_item of this.elements) {
         let name = form_item.name;
         if (name && name !== '') {
           if (form_item.type === 'checkbox') {
             form_item.checked = instance[name];
-          } else if (form_item.type === 'file' && instance[name] instanceof File) {
-            let container = new DataTransfer();
-            container.items.add(instance[name]);
-            form_item.files = container;
+          } else if (form_item.type === 'file') {
+            if(instance[name] instanceof File) {
+              let container = new DataTransfer();
+              container.items.add(instance[name]);
+              form_item.files = container;
+            }
           } else {
             $(form_item).val(instance[name]);
           }

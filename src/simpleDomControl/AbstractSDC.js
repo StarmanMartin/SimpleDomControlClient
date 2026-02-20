@@ -221,6 +221,9 @@ export class AbstractSDC {
         if(model_name instanceof Number && model_name.hasOwnProperty('load')) {
             return model_name.load(this);
         }
+        if (model_name instanceof Model) {
+          return model_name;
+        }
 
         const model = new Model(model_name, model_query);
         this._models.push(model);
