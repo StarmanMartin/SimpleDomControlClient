@@ -1,26 +1,34 @@
-import {getParamsNameOfFunction, checkIfParamNumberBoolOrString} from "./sdc_utils.js";
-import {DATA_CONTROLLER_KEY} from "./sdc_view.js";
-
+import {
+  getParamsNameOfFunction,
+  checkIfParamNumberBoolOrString,
+} from "./sdc_utils.js";
+import { DATA_CONTROLLER_KEY } from "./sdc_view.js";
 
 export function prepareData(data, paramNameList = []) {
-  const data_json_key = 'SDC_JSON_MODEL=['
+  const data_json_key = "SDC_JSON_MODEL=[";
   return Object.fromEntries(
-    Object.entries(data).filter(([key, element]) => {
-      return key !== DATA_CONTROLLER_KEY && !paramNameList.includes(key);
-    }).map(([key, element]) => {
-      if (typeof element === 'string' && element.startsWith(data_json_key)) {
-        try {
-          const {pk, fields} = JSON.parse(element.slice(data_json_key.length, -1));
-          return [key, {
-            ...fields,
-            id: pk,
-            pk
-          }];
-        } catch {
+    Object.entries(data)
+      .filter(([key, element]) => {
+        return key !== DATA_CONTROLLER_KEY && !paramNameList.includes(key);
+      })
+      .map(([key, element]) => {
+        if (typeof element === "string" && element.startsWith(data_json_key)) {
+          try {
+            const { pk, fields } = JSON.parse(
+              element.slice(data_json_key.length, -1),
+            );
+            return [
+              key,
+              {
+                ...fields,
+                id: pk,
+                pk,
+              },
+            ];
+          } catch {}
         }
-      }
-      return [key, element];
-    })
+        return [key, element];
+      }),
   );
 }
 
@@ -40,11 +48,11 @@ function getParamList(paramNameList, $element) {
     if (data.hasOwnProperty(data_name)) {
       returnList.push(data[data_name]);
     } else {
-      returnList.push('undefined');
+      returnList.push("undefined");
     }
   }
 
-  returnList.push(restData)
+  returnList.push(restData);
   return returnList;
 }
 
@@ -73,23 +81,30 @@ function getDomTagParamsWithList(paramNameList, $element, controller = null) {
  */
 function reg_runOnInitWithParameter(controller, $element, applyController) {
   if (!controller) {
-    return false
-  } else if (typeof controller.onInit !== 'function') {
-    return false
+    return false;
+  } else if (typeof controller.onInit !== "function") {
+    return false;
   }
   let paramNameList;
-  if (typeof controller._on_init_params === 'function') {
+  if (typeof controller._on_init_params === "function") {
     paramNameList = controller._on_init_params();
   } else {
     paramNameList = getParamsNameOfFunction(controller.onInit);
   }
 
-
-  let initParams = getDomTagParamsWithList(paramNameList, $element, applyController._parentController);
+  let initParams = getDomTagParamsWithList(
+    paramNameList,
+    $element,
+    applyController._parentController,
+  );
   controller.onInit.apply(applyController, initParams);
   if (applyController === controller) {
     for (let mixinKey in controller._mixins) {
-      reg_runOnInitWithParameter(controller._mixins[mixinKey], $element, applyController);
+      reg_runOnInitWithParameter(
+        controller._mixins[mixinKey],
+        $element,
+        applyController,
+      );
     }
   }
 }

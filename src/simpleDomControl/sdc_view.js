@@ -2,11 +2,11 @@ import {
   controllerFactory,
   prepareRefreshProcess,
   runControlFlowFunctions,
-  updateEventAndTriggerOnRefresh
+  updateEventAndTriggerOnRefresh,
 } from "./sdc_controller.js";
-import {getUrlParam, prepareData} from "./sdc_params.js";
-import {app} from "./sdc_main.js";
-import {trigger} from "./sdc_events.js";
+import { getUrlParam, prepareData } from "./sdc_params.js";
+import { app } from "./sdc_main.js";
+import { trigger } from "./sdc_events.js";
 
 /**
  * List of HTML files.
@@ -14,9 +14,8 @@ import {trigger} from "./sdc_events.js";
  */
 let htmlFiles = {};
 
-export const DATA_CONTROLLER_KEY = '_controller_';
-export const CONTROLLER_CLASS = '_sdc_controller_';
-
+export const DATA_CONTROLLER_KEY = "_controller_";
+export const CONTROLLER_CLASS = "_sdc_controller_";
 
 export function cleanCache() {
   htmlFiles = {};
@@ -41,18 +40,21 @@ function findSdcTgs($container, tagNameList, parentController) {
   let emptyList = [];
   $children.each(function (_, element) {
     let $element = $(element);
-    let tagName = $element.prop('tagName').toLowerCase().split('_');
+    let tagName = $element.prop("tagName").toLowerCase().split("_");
     if ($.inArray(tagName[0], tagNameList) >= 0) {
       emptyList.push({
         tag: tagName[0],
         super: tagName.splice(1) || [],
-        dom: $element
+        dom: $element,
       });
-
-    } else if (tagName[0].startsWith('this.')) {
-      $element.addClass(`_bind_to_update_handler sdc_uuid_${parentController._uuid}`)
+    } else if (tagName[0].startsWith("this.")) {
+      $element.addClass(
+        `_bind_to_update_handler sdc_uuid_${parentController._uuid}`,
+      );
     } else {
-      emptyList = emptyList.concat(findSdcTgs($element, tagNameList, parentController))
+      emptyList = emptyList.concat(
+        findSdcTgs($element, tagNameList, parentController),
+      );
     }
   });
 
@@ -90,33 +92,35 @@ function replacePlaceholderController(controller, url, urlValues) {
  * @returns {Promise<jQuery|Boolean>} - waits for the file to be loaded.
  */
 function loadHTMLFile(controller, args) {
-  const {contentUrl, _tagName, contentReload} = controller
+  const { contentUrl, _tagName, contentReload } = controller;
   if (!contentUrl) {
     return Promise.resolve(false);
   } else if (htmlFiles[_tagName]) {
-    return Promise.resolve(htmlFiles[_tagName])
+    return Promise.resolve(htmlFiles[_tagName]);
   }
 
   args.VERSION = app.VERSION;
-  args._method = 'content';
+  args._method = "content";
 
-  return $.get(contentUrl, args).then(function (data) {
-    if (!contentReload) {
-      htmlFiles[_tagName] = data;
-    }
+  return $.get(contentUrl, args)
+    .then(function (data) {
+      if (!contentReload) {
+        htmlFiles[_tagName] = data;
+      }
 
-    return data;
-  }).catch(function (err) {
-    if (err.status === 301) {
-      const data = err.responseJSON;
-      trigger('_RedirectOnView', data['url-link']);
-    }
-    if(typeof controller.confirmPageLoaded === 'function') {
-      trigger('navLoaded', {'controller_name': () => err.status});
-    }
+      return data;
+    })
+    .catch(function (err) {
+      if (err.status === 301) {
+        const data = err.responseJSON;
+        trigger("_RedirectOnView", data["url-link"]);
+      }
+      if (typeof controller.confirmPageLoaded === "function") {
+        trigger("navLoaded", { controller_name: () => err.status });
+      }
 
-    throw `<sdc-error data-code="${err.status}">${err.responseText}</sdc-error>`;
-  });
+      throw `<sdc-error data-code="${err.status}">${err.responseText}</sdc-error>`;
+    });
 }
 
 /**
@@ -127,9 +131,18 @@ function loadHTMLFile(controller, args) {
  * @param {AbstractSDC} parentController - parent contoller surrounded the container
  * @param {Object} process - Process object containing the refresh process
  */
-function replaceAllTagElementsInContainer($container, parentController, process = null) {
+function replaceAllTagElementsInContainer(
+  $container,
+  parentController,
+  process = null,
+) {
   parentController = parentController || $container.data(DATA_CONTROLLER_KEY);
-  return replaceTagElementsInContainer(app.tagNames, $container, parentController, process);
+  return replaceTagElementsInContainer(
+    app.tagNames,
+    $container,
+    parentController,
+    process,
+  );
 }
 
 /**
@@ -158,9 +171,8 @@ function parseContentUrl(controller) {
 
   controller.parsedContentUrl = url;
 
-  return {url: url, args: params[params.length - 1]};
+  return { url: url, args: params[params.length - 1] };
 }
-
 
 /**
  *
@@ -186,26 +198,26 @@ export function getController($elem) {
  * @returns {Promise<jQuery>} - the promise waits to the files are loaded. it returns the jQuery object.
  */
 export function loadFilesFromController(controller) {
-  let getElements = {args: {}};
+  let getElements = { args: {} };
   if (controller.contentUrl) {
     getElements = parseContentUrl(controller);
     controller.contentUrl = getElements.url;
   }
 
-  return Promise.all([
-    loadHTMLFile(controller, getElements.args)
-  ]).then(function (results) {
-    let htmlFile = results[0];
-    if (htmlFile) {
-      try {
-        return $(htmlFile);
-      } catch {
-        return $('<div></div>').append(htmlFile);
+  return Promise.all([loadHTMLFile(controller, getElements.args)]).then(
+    function (results) {
+      let htmlFile = results[0];
+      if (htmlFile) {
+        try {
+          return $(htmlFile);
+        } catch {
+          return $("<div></div>").append(htmlFile);
+        }
       }
-    }
 
-    return null;
-  });
+      return null;
+    },
+  );
 }
 
 /**
@@ -225,7 +237,7 @@ export function reloadHTMLController(controller) {
     return loadHTMLFile(controller, getElements.args);
   }
 
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     resolve($());
   });
 }
@@ -239,18 +251,28 @@ export function reloadHTMLController(controller) {
  * @param {Object} process - Process object containing the refresh process
  * @returns {Promise}
  */
-function runReplaceTagElementsInContainer($element, tagName, superTagNameList, parentController, process) {
+function runReplaceTagElementsInContainer(
+  $element,
+  tagName,
+  superTagNameList,
+  parentController,
+  process,
+) {
   let controller = $element.data(DATA_CONTROLLER_KEY);
   if (controller) {
     return replaceAllTagElementsInContainer($element, controller, process);
   }
 
-  controller = controllerFactory(parentController, $element, tagName, superTagNameList);
+  controller = controllerFactory(
+    parentController,
+    $element,
+    tagName,
+    superTagNameList,
+  );
   $element.data(DATA_CONTROLLER_KEY, controller);
   $element.addClass(CONTROLLER_CLASS);
   return runControlFlowFunctions(controller, process);
 }
-
 
 /**
  * runControllerFillContent empties the registered tag and replaces it by the controller
@@ -264,16 +286,19 @@ function runReplaceTagElementsInContainer($element, tagName, superTagNameList, p
 export function runControllerFillContent(controller, $html, process = null) {
   if ($html && $html.length > 0) {
     controller.$container.empty();
-    controller.$container.attr(controller._tagName, '');
+    controller.$container.attr(controller._tagName, "");
     for (let mixinKey in controller._mixins) {
-      controller.$container.attr(controller._mixins[mixinKey]._tagName, '');
+      controller.$container.attr(controller._mixins[mixinKey]._tagName, "");
     }
     controller.$container.append($html);
   }
 
-  return replaceAllTagElementsInContainer(controller.$container, controller, process);
+  return replaceAllTagElementsInContainer(
+    controller.$container,
+    controller,
+    process,
+  );
 }
-
 
 /**
  * replaceTagElementsInContainer Finds all registered tags in a container. But it ignores
@@ -286,21 +311,36 @@ export function runControllerFillContent(controller, $html, process = null) {
  * @param {AbstractSDC} parentController - controller in surrounding
  * @param {Object} process - Process object containing the refresh process
  */
-export function replaceTagElementsInContainer(tagList, $container, parentController, process) {
+export function replaceTagElementsInContainer(
+  tagList,
+  $container,
+  parentController,
+  process,
+) {
   return new Promise((resolve) => {
-
-    let tagDescriptionElements = findSdcTgs($container, tagList, parentController);
+    let tagDescriptionElements = findSdcTgs(
+      $container,
+      tagList,
+      parentController,
+    );
     let tagCount = tagDescriptionElements.length;
 
     if (tagCount === 0) {
       return resolve();
     }
 
-    for (let elementIndex = 0; elementIndex < tagDescriptionElements.length; elementIndex++) {
-      runReplaceTagElementsInContainer(tagDescriptionElements[elementIndex].dom,
+    for (
+      let elementIndex = 0;
+      elementIndex < tagDescriptionElements.length;
+      elementIndex++
+    ) {
+      runReplaceTagElementsInContainer(
+        tagDescriptionElements[elementIndex].dom,
         tagDescriptionElements[elementIndex].tag,
         tagDescriptionElements[elementIndex].super,
-        parentController, process).then(() => {
+        parentController,
+        process,
+      ).then(() => {
         tagCount--;
         if (tagCount === 0) {
           return resolve();
@@ -311,136 +351,157 @@ export function replaceTagElementsInContainer(tagList, $container, parentControl
 }
 
 export function reloadMethodHTML(controller, $container, process) {
-  return _reloadMethodHTML(controller, $container ?? controller.$container, process)
+  return _reloadMethodHTML(
+    controller,
+    $container ?? controller.$container,
+    process,
+  );
 }
 
 function _reloadMethodHTML(controller, $dom, process) {
   const plist = [];
 
-  $dom.find(`._bind_to_update_handler.sdc_uuid_${controller._uuid}`).each(function () {
-    const $this = $(this);
-    let result = undefined;
-    if ($this.hasClass(`_with_handler`)) {
-      result = $this.data('handler');
-    } else {
-      let controller_handler = this.tagName.toLowerCase().replace(/^this./, '');
-      if (controller[controller_handler]) {
-        result = controller[controller_handler];
-      }
-    }
-
-
-    if (typeof result === 'function') {
-      const newData = prepareData($this.data());
-      result = result.bind(controller)(newData);
-    }
-    if (result) {
-      plist.push(Promise.resolve(result).then((x) => {
-        let $newContent = $(`<div></div>`);
-        $newContent.append(x);
-
-        if ($this.html() === '') {
-          $this.append('<div></div>');
+  $dom
+    .find(`._bind_to_update_handler.sdc_uuid_${controller._uuid}`)
+    .each(function () {
+      const $this = $(this);
+      let result = undefined;
+      if ($this.hasClass(`_with_handler`)) {
+        result = $this.data("handler");
+      } else {
+        let controller_handler = this.tagName
+          .toLowerCase()
+          .replace(/^this./, "");
+        if (controller[controller_handler]) {
+          result = controller[controller_handler];
         }
+      }
 
-        return app.reconcile(controller, $newContent, $this.children(), process);
-      }));
-    }
+      if (typeof result === "function") {
+        const newData = prepareData($this.data());
+        result = result.bind(controller)(newData);
+      }
+      if (result) {
+        plist.push(
+          Promise.resolve(result).then((x) => {
+            let $newContent = $(`<div></div>`);
+            $newContent.append(x);
 
-  });
+            if ($this.html() === "") {
+              $this.append("<div></div>");
+            }
+
+            return app.reconcile(
+              controller,
+              $newContent,
+              $this.children(),
+              process,
+            );
+          }),
+        );
+      }
+    });
 
   return Promise.all(plist);
 }
-
 
 function getNodeKey(node) {
   if (node[0].nodeType === 3) {
     return `TEXT__${node[0].nodeValue}`;
   }
   const res = [node[0].tagName];
-  if (node[0].nodeName === 'INPUT') {
-    [['name', ''], ['type', 'text'], ['id', '']].forEach(([key, defaultValue]) => {
+  if (node[0].nodeName === "INPUT") {
+    [
+      ["name", ""],
+      ["type", "text"],
+      ["id", ""],
+    ].forEach(([key, defaultValue]) => {
       const attr = node.attr(key) ?? defaultValue;
       if (attr) {
         res.push(attr);
       }
     });
   }
-  return res.join('__');
+  return res.join("__");
 }
 
-function reconcileTree({$element, id = [], parent = null}) {
+function reconcileTree({ $element, id = [], parent = null }) {
   id.push(getNodeKey($element));
   const obj = {
     $element,
-    id: id.join('::'),
+    id: id.join("::"),
     depth: id.length,
     idx: 0,
     getRealParent: () => parent,
     getIdx: function () {
-      this.idx = Math.max(0, (this.getRealParent()?.getIdx() ?? -1) + $element.index() + 1);
+      this.idx = Math.max(
+        0,
+        (this.getRealParent()?.getIdx() ?? -1) + $element.index() + 1,
+      );
       return this.idx;
     },
     op: null,
-    parent
+    parent,
   };
   obj.getIdx.bind(obj);
-  return [obj].concat($element.contents().toArray().map((x) => reconcileTree({
-    $element: $(x),
-    id: id.slice(),
-    parent: obj
-  })).flat());
-
+  return [obj].concat(
+    $element
+      .contents()
+      .toArray()
+      .map((x) =>
+        reconcileTree({
+          $element: $(x),
+          id: id.slice(),
+          parent: obj,
+        }),
+      )
+      .flat(),
+  );
 }
 
-
 export function reconcile($virtualNode, $realNode) {
-
-  const $old = reconcileTree({$element: $realNode});
-  const $new = reconcileTree({$element: $virtualNode});
-  $old.map((x, i) => x.idx = i);
-  $new.map((x, i) => x.idx = i);
-  const depth = Math.max(...$new.concat($old).map(x => x.depth));
+  const $old = reconcileTree({ $element: $realNode });
+  const $new = reconcileTree({ $element: $virtualNode });
+  $old.map((x, i) => (x.idx = i));
+  $new.map((x, i) => (x.idx = i));
+  const depth = Math.max(...$new.concat($old).map((x) => x.depth));
   const op_steps = lcbDiff($old, $new, depth);
   let toRemove = [];
   window.MAIN = $realNode;
   window.OPS = op_steps;
 
   op_steps.forEach((op_step, i) => {
-      const {op, $element, idx} = op_step;
+    const { op, $element, idx } = op_step;
 
-      if (op.type === 'keep_counterpart') {
-        let cIdx = op.counterpart.getIdx();
-        if (cIdx !== idx) {
-          const elemBefore = op_step.getBefore();
-          if (!elemBefore) {
-            op_step.getRealParent().$element.prepend(op.counterpart.$element);
-          } else {
-            op.counterpart.$element.insertAfter(elemBefore.$element);
-          }
+    if (op.type === "keep_counterpart") {
+      let cIdx = op.counterpart.getIdx();
+      if (cIdx !== idx) {
+        const elemBefore = op_step.getBefore();
+        if (!elemBefore) {
+          op_step.getRealParent().$element.prepend(op.counterpart.$element);
+        } else {
+          op.counterpart.$element.insertAfter(elemBefore.$element);
         }
+      }
 
-        syncAttributes(op.counterpart.$element, $element);
-        if ($element.hasClass(CONTROLLER_CLASS)) {
-          $element.data(DATA_CONTROLLER_KEY).$container = op.counterpart.$element;
-          $element.data(DATA_CONTROLLER_KEY, null);
-        }
+      syncAttributes(op.counterpart.$element, $element);
+      if ($element.hasClass(CONTROLLER_CLASS)) {
+        $element.data(DATA_CONTROLLER_KEY).$container = op.counterpart.$element;
+        $element.data(DATA_CONTROLLER_KEY, null);
+      }
 
-        toRemove.push($element);
-      } else if (op.type === 'delete') {
-        $element.safeRemove();
-      } else if (op.type === 'insert') {
-        const {after, target} = op_step.op;
-        if (after) {
-          $element.insertAfter(after.$element);
-        } else if (target) {
-          target.$element.prepend($element);
-        }
-
+      toRemove.push($element);
+    } else if (op.type === "delete") {
+      $element.safeRemove();
+    } else if (op.type === "insert") {
+      const { after, target } = op_step.op;
+      if (after) {
+        $element.insertAfter(after.$element);
+      } else if (target) {
+        target.$element.prepend($element);
       }
     }
-  )
-  ;
+  });
 
   toRemove.forEach(($element) => $element.safeRemove());
 }
@@ -449,14 +510,14 @@ function syncAttributes($real, $virtual) {
   const realAttrs = $real[0].attributes ?? [];
   const virtualAttrs = $virtual[0].attributes ?? [];
   // Remove missing attrs
-  [...realAttrs].forEach(attr => {
+  [...realAttrs].forEach((attr) => {
     if (!$virtual.is(`[${attr.name}]`)) {
       $real.removeAttr(attr.name);
     }
   });
 
   // Add or update
-  [...virtualAttrs].forEach(attr => {
+  [...virtualAttrs].forEach((attr) => {
     if (!attr.name.startsWith(`data`) && $real.attr(attr.name) !== attr.value) {
       $real.attr(attr.name, attr.value);
     }
@@ -477,26 +538,27 @@ function syncAttributes($real, $virtual) {
  * @returns {*|*[]}
  */
 function lcbDiff(oldNodes, newNodes, depth) {
-  newNodes.filter(x => x.depth === depth && !x.op).forEach((newNode) => {
-    const oldNode = oldNodes.find((tempOldNode) => {
-      return !tempOldNode.op && tempOldNode.id === newNode.id;
-    });
+  newNodes
+    .filter((x) => x.depth === depth && !x.op)
+    .forEach((newNode) => {
+      const oldNode = oldNodes.find((tempOldNode) => {
+        return !tempOldNode.op && tempOldNode.id === newNode.id;
+      });
 
-    if (oldNode) {
-      const keepTreeBranch = (oldNode, newNode) => {
-        oldNode.op = {type: 'keep', idx: newNode.idx};
-        newNode.op = {type: 'keep_counterpart', counterpart: oldNode};
-        oldNode = oldNode.parent;
-        newNode = newNode.parent;
-        if (!oldNode || oldNode.op || newNode?.op) {
-          return;
-        }
+      if (oldNode) {
+        const keepTreeBranch = (oldNode, newNode) => {
+          oldNode.op = { type: "keep", idx: newNode.idx };
+          newNode.op = { type: "keep_counterpart", counterpart: oldNode };
+          oldNode = oldNode.parent;
+          newNode = newNode.parent;
+          if (!oldNode || oldNode.op || newNode?.op) {
+            return;
+          }
+          keepTreeBranch(oldNode, newNode);
+        };
         keepTreeBranch(oldNode, newNode);
-
       }
-      keepTreeBranch(oldNode, newNode);
-    }
-  });
+    });
   if (depth > 1) {
     return lcbDiff(oldNodes, newNodes, depth - 1);
   }
@@ -504,7 +566,7 @@ function lcbDiff(oldNodes, newNodes, depth) {
   oldNodes.forEach((x, i) => {
     if (!x.op) {
       const idx = (oldNodes[i - 1]?.op.idx ?? -1) + 1;
-      x.op = {type: 'delete', idx}
+      x.op = { type: "delete", idx };
     }
   });
 
@@ -512,7 +574,9 @@ function lcbDiff(oldNodes, newNodes, depth) {
     if (!element.parent) {
       return null;
     }
-    return element.parent.op.type === 'keep_counterpart' ? element.parent.op.counterpart : element.parent;
+    return element.parent.op.type === "keep_counterpart"
+      ? element.parent.op.counterpart
+      : element.parent;
   }
 
   function getBefore(element, idx) {
@@ -521,12 +585,13 @@ function lcbDiff(oldNodes, newNodes, depth) {
       idx -= 1;
       element = newNodes[idx];
       if (element.depth === startDepth) {
-        return element.op.type === 'keep_counterpart' ? element.op.counterpart : element;
+        return element.op.type === "keep_counterpart"
+          ? element.op.counterpart
+          : element;
       }
     }
 
-    return null
-
+    return null;
   }
 
   newNodes.forEach((x, i) => {
@@ -535,16 +600,12 @@ function lcbDiff(oldNodes, newNodes, depth) {
 
     if (!x.op) {
       const target = x.getRealParent();
-      const type = target?.op.type === 'insert' ? 'insert_ignore' : 'insert';
-      x.op = {type, target, after: x.getBefore()}
+      const type = target?.op.type === "insert" ? "insert_ignore" : "insert";
+      x.op = { type, target, after: x.getBefore() };
     }
   });
 
-  const tagged = [
-    ...oldNodes,
-    ...newNodes,
-  ];
-
+  const tagged = [...oldNodes, ...newNodes];
 
   return tagged.sort((a, b) => {
     const aVal = a.op?.idx ?? a.idx;
@@ -571,16 +632,23 @@ export function refresh($dom, leafController, process = null) {
     return Promise.resolve();
   }
 
-  const {refreshProcess, isRunningProcess} = prepareRefreshProcess(process, leafController);
+  const { refreshProcess, isRunningProcess } = prepareRefreshProcess(
+    process,
+    leafController,
+  );
 
   $dom ??= leafController.$container;
 
-  return replaceTagElementsInContainer(app.tagNames, $dom, leafController, process).then(() => {
+  return replaceTagElementsInContainer(
+    app.tagNames,
+    $dom,
+    leafController,
+    process,
+  ).then(() => {
     return reloadMethodHTML(leafController, $dom, refreshProcess).then(() => {
       if (!isRunningProcess) {
         updateEventAndTriggerOnRefresh(refreshProcess);
       }
     });
-
   });
 }

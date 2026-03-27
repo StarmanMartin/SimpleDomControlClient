@@ -1,5 +1,4 @@
-import {promiseDummyFactory} from "./sdc_utils.js";
-
+import { promiseDummyFactory } from "./sdc_utils.js";
 
 /**
  * A list of handler (controller) for the registered events.
@@ -23,17 +22,17 @@ let eventList = {};
  * @param {AbstractSDC} controller -  a instance of a JavaScript controller object.
  */
 export function on(name, controller) {
-    setEvent(name);
-    if (!eventList.hasOwnProperty(name)) {
-        return console.log('No event: ' + name, controller);
-    }
+  setEvent(name);
+  if (!eventList.hasOwnProperty(name)) {
+    return console.log("No event: " + name, controller);
+  }
 
-    let funcName = eventList[name];
-    if (!controller[funcName]) {
-        return console.log('No event handler: ' + name, controller);
-    }
+  let funcName = eventList[name];
+  if (!controller[funcName]) {
+    return console.log("No event handler: " + name, controller);
+  }
 
-    handlerList[name].push(controller);
+  handlerList[name].push(controller);
 }
 
 /**
@@ -44,14 +43,14 @@ export function on(name, controller) {
  * @param {string} functionName - function name
  */
 export function setEvent(name, functionName) {
-    if (!functionName) {
-        functionName = name;
-    }
+  if (!functionName) {
+    functionName = name;
+  }
 
-    if (!eventList[name]) {
-        eventList[name] = functionName;
-        handlerList[name] = [];
-    }
+  if (!eventList[name]) {
+    eventList[name] = functionName;
+    handlerList[name] = [];
+  }
 }
 
 /**
@@ -61,15 +60,15 @@ export function setEvent(name, functionName) {
  * @param {AbstractSDC} controller - a instance of a JavaScript controller object.
  */
 export function allOff(controller) {
-    for (let eventName in handlerList) {
-        if (handlerList.hasOwnProperty(eventName)) {
-            for (let i = handlerList[eventName].length; i >= 0; i--) {
-                if (controller === handlerList[eventName][i]) {
-                    handlerList[eventName].splice(i, 1);
-                }
-            }
+  for (let eventName in handlerList) {
+    if (handlerList.hasOwnProperty(eventName)) {
+      for (let i = handlerList[eventName].length; i >= 0; i--) {
+        if (controller === handlerList[eventName][i]) {
+          handlerList[eventName].splice(i, 1);
         }
+      }
     }
+  }
 }
 
 /**
@@ -81,22 +80,22 @@ export function allOff(controller) {
  * @returns {Promise<object>} - waits to return all return values of the handler
  */
 export function trigger(name) {
-    let args = Array.apply(null, arguments);
-    name = args.shift();
-    if(!handlerList.hasOwnProperty(name) || !eventList.hasOwnProperty(name)) {
-        return promiseDummyFactory();
+  let args = Array.apply(null, arguments);
+  name = args.shift();
+  if (!handlerList.hasOwnProperty(name) || !eventList.hasOwnProperty(name)) {
+    return promiseDummyFactory();
+  }
+  let handler = handlerList[name];
+  let funcName = eventList[name];
+
+  let list = [];
+
+  for (let i = 0; i < handler.length; i++) {
+    let return_val = handler[i][funcName].apply(handler[i], args);
+    if (typeof return_val !== "undefined") {
+      list.push(return_val);
     }
-    let handler = handlerList[name];
-    let funcName = eventList[name];
+  }
 
-    let list = [];
-
-    for (let i = 0; i < handler.length; i++) {
-        let return_val = handler[i][funcName].apply(handler[i], args);
-        if (typeof return_val !== "undefined") {
-            list.push(return_val);
-        }
-    }
-
-    return Promise.all(list);
+  return Promise.all(list);
 }

@@ -7,39 +7,46 @@ import {
   replaceTagElementsInContainer,
   reloadHTMLController,
   DATA_CONTROLLER_KEY,
-  CONTROLLER_CLASS, getController, cleanCache, refresh
+  CONTROLLER_CLASS,
+  getController,
+  cleanCache,
+  refresh,
 } from "./sdc_view.js";
-import {AbstractSDC} from "./AbstractSDC.js";
+import { AbstractSDC } from "./AbstractSDC.js";
 import {
   Global,
   controllerList,
   tagList,
   resetChildren,
   updateEventAndTriggerOnRefresh,
-  prepareRefreshProcess
+  prepareRefreshProcess,
 } from "./sdc_controller.js";
-import {initEvents, STD_EVENT_LIST, windowEventHandler} from "./sdc_dom_events.js";
-import {reconcile} from "./sdc_view.js";
-import {trigger} from "./sdc_events.js";
-import {isConnected, close} from "./sdc_server_call.js";
+import {
+  initEvents,
+  STD_EVENT_LIST,
+  windowEventHandler,
+} from "./sdc_dom_events.js";
+import { reconcile } from "./sdc_view.js";
+import { trigger } from "./sdc_events.js";
+import { isConnected, close } from "./sdc_server_call.js";
 
-const PROPERTIES_UPDATE = {'classname': 'class'}
+const PROPERTIES_UPDATE = { classname: "class" };
 
 let sdcDomFragment = function (element, props) {
-  let $new_elem, is_self = false;
-  if (typeof element === 'string') {
+  let $new_elem,
+    is_self = false;
+  if (typeof element === "string") {
     $new_elem = $(document.createElement(element));
   } else {
     const tagName = `this.${element.name}`;
     $new_elem = $(document.createElement(tagName));
-    $new_elem.data('handler', element);
-    is_self = true
+    $new_elem.data("handler", element);
+    is_self = true;
   }
-
 
   if (props) {
     Object.entries(props).forEach(([k, v]) => {
-      if (k.startsWith('on')) {
+      if (k.startsWith("on")) {
         $new_elem[0].addEventListener(k.substring(2).toLowerCase(), v);
       } else {
         if (PROPERTIES_UPDATE[k.toLowerCase()]) {
@@ -51,29 +58,28 @@ let sdcDomFragment = function (element, props) {
   }
 
   if (is_self) {
-    $new_elem.addClass('_bind_to_update_handler _with_handler');
+    $new_elem.addClass("_bind_to_update_handler _with_handler");
   }
 
   return $new_elem;
-}
+};
 
 window.sdcDom = function (tagName, props, ...children) {
   if (!tagName) {
-    return '';
+    return "";
   }
   const $new_elem = sdcDomFragment(tagName, props);
   for (const c of children) {
     $new_elem.append(c);
   }
   return $new_elem;
-
-}
+};
 
 export let app = {
-  CSRF_TOKEN: window.CSRF_TOKEN || '',
-  LANGUAGE_CODE: window.LANGUAGE_CODE || 'en',
+  CSRF_TOKEN: window.CSRF_TOKEN || "",
+  LANGUAGE_CODE: window.LANGUAGE_CODE || "en",
   DEBUG: window.DEBUG || false,
-  VERSION: window.VERSION || '0.0',
+  VERSION: window.VERSION || "0.0",
   tagNames: [],
   Global: Global,
   rootController: null,
@@ -88,13 +94,15 @@ export let app = {
       if (!app._origin_trigger) {
         app._origin_trigger = $.fn.trigger;
         $.fn.trigger = function (event) {
-          const ev_type = {}.hasOwnProperty.call(event, "type") ? event.type : event;
+          const ev_type = {}.hasOwnProperty.call(event, "type")
+            ? event.type
+            : event;
           if (!STD_EVENT_LIST.includes(ev_type)) {
             STD_EVENT_LIST.push(ev_type);
             $(window).on(ev_type, windowEventHandler);
           }
           return app._origin_trigger.call(this, event);
-        }
+        };
 
         app.updateJquery();
       } else {
@@ -111,16 +119,28 @@ export let app = {
 
     app.tagNames = tagList();
 
-    const $globalDiv = $('<div></div>');
+    const $globalDiv = $("<div></div>");
     Global.forEach((tagName) => {
       const ControllerClass = controllerList[tagName][0];
-      $globalDiv.append(`<${ControllerClass.prototype._tagName}></${ControllerClass.prototype._tagName}>`);
+      $globalDiv.append(
+        `<${ControllerClass.prototype._tagName}></${ControllerClass.prototype._tagName}>`,
+      );
     });
 
-    const {refreshProcess} = prepareRefreshProcess(null, app.rootController);
+    const { refreshProcess } = prepareRefreshProcess(null, app.rootController);
 
-    return replaceTagElementsInContainer(app.tagNames, $globalDiv, app.globalRootController, refreshProcess).then(() => {
-      return replaceTagElementsInContainer(app.tagNames, getBody(), app.rootController, refreshProcess).then((res) => {
+    return replaceTagElementsInContainer(
+      app.tagNames,
+      $globalDiv,
+      app.globalRootController,
+      refreshProcess,
+    ).then(() => {
+      return replaceTagElementsInContainer(
+        app.tagNames,
+        getBody(),
+        app.rootController,
+        refreshProcess,
+      ).then((res) => {
         updateEventAndTriggerOnRefresh(refreshProcess);
         return res;
       });
@@ -130,18 +150,18 @@ export let app = {
   updateJquery: () => {
     $.fn.safeReplace = function ($elem) {
       return app.safeReplace($(this), $elem);
-    }
+    };
     $.fn.safeEmpty = function () {
       return app.safeEmpty($(this));
-    }
+    };
     $.fn.safeRemove = function () {
       return app.safeRemove($(this));
-    }
+    };
   },
 
   controllerToTag: (Controller) => {
     let tagName = camelCaseToTagName(Controller.name);
-    return tagName.replace(/-controller$/, '');
+    return tagName.replace(/-controller$/, "");
   },
 
   /**
@@ -180,16 +200,16 @@ export let app = {
             if (typeof mixin === "string") {
               mixinName = camelCaseToTagName(mixin);
             } else if (mixin) {
-              mixinName = app.controllerToTag(mixin)
+              mixinName = app.controllerToTag(mixin);
             }
             controllerList[tagName][1].push(mixinName);
           }
-        }
-      }
+        },
+      };
     }
     return {
-      addMixin: (...mixins) => {}
-    }
+      addMixin: (...mixins) => {},
+    };
   },
 
   /**
@@ -233,19 +253,21 @@ export let app = {
     }
 
     args.VERSION = app.VERSION;
-    args._method = args._method || 'api';
+    args._method = args._method || "api";
 
     const p = new Promise((resolve, reject) => {
-      return method(url, args).then((a, b, c) => {
-        resolve(a, b, c);
-        if (a.status === 'redirect') {
-          trigger('onNavLink', a['url-link']);
-        } else {
-          p.then(() => {
-            app.refresh(controller.$container);
-          });
-        }
-      }).catch(reject);
+      return method(url, args)
+        .then((a, b, c) => {
+          resolve(a, b, c);
+          if (a.status === "redirect") {
+            trigger("onNavLink", a["url-link"]);
+          } else {
+            p.then(() => {
+              app.refresh(controller.$container);
+            });
+          }
+        })
+        .catch(reject);
     });
 
     return p;
@@ -254,19 +276,18 @@ export let app = {
   submitFormAndUpdateView: (controller, form, url, method) => {
     let formData = new FormData(form);
     const redirector = (a) => {
-      if (a['url-link']) {
-        trigger('onNavLink', a['url-link']);
+      if (a["url-link"]) {
+        trigger("onNavLink", a["url-link"]);
       } else {
-        window.location.href = a['url'];
+        window.location.href = a["url"];
       }
-
-    }
+    };
 
     const p = new Promise((resolve, reject) => {
-      uploadFileFormData(formData, (url || form.action), (method || form.method))
+      uploadFileFormData(formData, url || form.action, method || form.method)
         .then((a, b, c) => {
           resolve(a, b, c);
-          if (a.status === 'redirect') {
+          if (a.status === "redirect") {
             redirector(a);
           } else {
             p.then(() => {
@@ -286,14 +307,14 @@ export let app = {
     });
 
     return p;
-
   },
 
   submitForm: (form, url, method) => {
     let formData = new FormData(form);
     return new Promise((resolve, reject) => {
-      uploadFileFormData(formData, (url || form.action), (method || form.method))
-        .then(resolve).catch(reject);
+      uploadFileFormData(formData, url || form.action, method || form.method)
+        .then(resolve)
+        .catch(reject);
     });
   },
 
@@ -332,7 +353,6 @@ export let app = {
     return app.safeRemove($elem);
   },
 
-
   /**
    * safeRemove removes a dom and deletes all child controller safely.
    *
@@ -366,7 +386,6 @@ export let app = {
     });
   },
 
-
   /**
    *
    * @param {AbstractSDC} controller
@@ -385,7 +404,10 @@ export let app = {
 
     $realNode = $realNode ?? controller.$container;
 
-    const {refreshProcess, isRunningProcess} = prepareRefreshProcess(process, controller);
+    const { refreshProcess, isRunningProcess } = prepareRefreshProcess(
+      process,
+      controller,
+    );
 
     return refresh($virtualNode, controller, refreshProcess).then(() => {
       reconcile($virtualNode, $realNode);
@@ -395,7 +417,6 @@ export let app = {
       }
       return controller;
     });
-
   },
 
   /**

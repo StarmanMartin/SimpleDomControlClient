@@ -1,12 +1,10 @@
-import {app} from './sdc_main.js';
-import {trigger} from "./sdc_events.js";
-import {uuidv4} from "./sdc_utils.js";
+import { app } from "./sdc_main.js";
+import { trigger } from "./sdc_events.js";
+import { uuidv4 } from "./sdc_utils.js";
 
 const MAX_FILE_UPLOAD = 25000;
 
-
 class SubModel {
-
   constructor(pk, model) {
     this.pk = pk;
     this._model = model;
@@ -35,9 +33,9 @@ class SubModel {
       throw new TypeError("Model is not set!!");
     }
     if (this.pk instanceof Array) {
-      return controller.newModel(this._model, {pk__in: this.pk});
+      return controller.newModel(this._model, { pk__in: this.pk });
     }
-    return controller.newModel(this._model, {pk: this.pk});
+    return controller.newModel(this._model, { pk: this.pk });
   }
 }
 
@@ -46,7 +44,7 @@ const ModelProxyHandler = {
     const value = target[key] ?? undefined;
     if (value instanceof SubModel) {
       if (!value.pk && value.pk !== 0) {
-        return null
+        return null;
       }
       let newVal;
       if (value.pk instanceof Array) {
@@ -63,7 +61,7 @@ const ModelProxyHandler = {
     if (key in target) {
       const oldVal = target[key];
       if (oldVal instanceof SubModel) {
-        if (value.hasOwnProperty('pk')) {
+        if (value.hasOwnProperty("pk")) {
           oldVal.pk = value.pk;
         } else {
           try {
@@ -71,7 +69,6 @@ const ModelProxyHandler = {
           } catch {
             oldVal.pk = value;
           }
-
         }
       } else {
         target[key] = value;
@@ -80,23 +77,20 @@ const ModelProxyHandler = {
       target[key] = value;
     }
     return true;
-  }
-}
-
+  },
+};
 
 function parse_hidden_inputs(value) {
-
   let isFloatReg = /^-?\d+\.?\d+$/;
   let isIntReg = /^-?\d+$/;
   let isBoolReg = /^(true|false)$/;
   let isStringReg = /^(['][^']*['])|(["][^"]*["])$/;
 
-
   if (value.toLowerCase().match(isBoolReg)) {
-    return value.toLowerCase() === 'true';
-  } else if (value === 'undefined') {
+    return value.toLowerCase() === "true";
+  } else if (value === "undefined") {
     return undefined;
-  } else if (value.toLowerCase() === 'none') {
+  } else if (value.toLowerCase() === "none") {
     return null;
   } else if (value.match(isIntReg)) {
     return parseInt(value);
@@ -107,7 +101,6 @@ function parse_hidden_inputs(value) {
   }
   return value;
 }
-
 
 export class Model {
   /**
@@ -126,10 +119,8 @@ export class Model {
     this._auto_reconnect = true;
     this.socket = null;
     this.open_request = {};
-    this.on_update = () => {
-    };
-    this.on_create = () => {
-    };
+    this.on_update = () => {};
+    this.on_create = () => {};
 
     this.form_id = uuidv4();
   }
@@ -140,10 +131,10 @@ export class Model {
       next: () => {
         ++idx;
         if (idx < this.values_list.length) {
-          return {value: this.values_list[idx], done: false};
+          return { value: this.values_list[idx], done: false };
         }
-        return {value: null, done: true};
-      }
+        return { value: null, done: true };
+      },
     };
   }
 
@@ -157,15 +148,14 @@ export class Model {
       if (isNaN(pk)) {
         pk = -1;
       }
-      let elem = this.values_list.find(elm => elm.pk === pk);
+      let elem = this.values_list.find((elm) => elm.pk === pk);
       if (!elem) {
-        elem = new Proxy({pk: pk}, ModelProxyHandler);
+        elem = new Proxy({ pk: pk }, ModelProxyHandler);
         this.values_list.push(elem);
       }
       return elem;
     }
-    return {pk: pk};
-
+    return { pk: pk };
   }
 
   filter(model_query) {
@@ -177,63 +167,85 @@ export class Model {
     return this.isConnected().then(() => {
       const id = uuidv4();
       return new Promise((resolve, reject) => {
-        this.socket.send(JSON.stringify({
-          event: 'model',
-          event_type: 'load',
-          event_id: id,
-          args: {
-            model_name: this.model_name,
-            model_query: this.model_query
-          }
-        }));
+        this.socket.send(
+          JSON.stringify({
+            event: "model",
+            event_type: "load",
+            event_id: id,
+            args: {
+              model_name: this.model_name,
+              model_query: this.model_query,
+            },
+          }),
+        );
 
         this.open_request[id] = [resolve, reject];
       });
     });
   }
 
-  listView(filter = {}, cbResolve = null, cbReject = null, templateContext = {}) {
-    return this.view({filter, cbResolve, cbReject, templateContext, event_type: 'list_view'})
+  listView(
+    filter = {},
+    cbResolve = null,
+    cbReject = null,
+    templateContext = {},
+  ) {
+    return this.view({
+      filter,
+      cbResolve,
+      cbReject,
+      templateContext,
+      event_type: "list_view",
+    });
   }
 
   view({
-         viewName = 'html_list_template',
-         filter = {},
-         cbResolve = null,
-         cbReject = null,
-         templateContext = {},
-         event_type = 'named_view'
-       }) {
+    viewName = "html_list_template",
+    filter = {},
+    cbResolve = null,
+    cbReject = null,
+    templateContext = {},
+    event_type = "named_view",
+  }) {
     let $div_list = $('<div class="container-fluid">');
     this.isConnected().then(() => {
       const id = uuidv4();
-      this.socket.send(JSON.stringify({
-        event: 'model',
-        event_type,
-        event_id: id,
-        args: {
-          view_name: viewName,
-          model_name: this.model_name,
-          model_query: this.model_query,
-          filter,
-          template_context: templateContext
-        }
-      }));
+      this.socket.send(
+        JSON.stringify({
+          event: "model",
+          event_type,
+          event_id: id,
+          args: {
+            view_name: viewName,
+            model_name: this.model_name,
+            model_query: this.model_query,
+            filter,
+            template_context: templateContext,
+          },
+        }),
+      );
 
-      this.open_request[id] = [(data) => {
-        $div_list.append(data.html);
-        app.refresh($div_list);
-        cbResolve && cbResolve(data);
-      }, (res) => {
-        cbReject && cbReject(res);
-      }];
-
+      this.open_request[id] = [
+        (data) => {
+          $div_list.append(data.html);
+          app.refresh($div_list);
+          cbResolve && cbResolve(data);
+        },
+        (res) => {
+          cbReject && cbReject(res);
+        },
+      ];
     });
 
     return $div_list;
   }
 
-  detailView(pk = null, cb_resolve = null, cb_reject = null, template_context = {}) {
+  detailView(
+    pk = null,
+    cb_resolve = null,
+    cb_reject = null,
+    template_context = {},
+  ) {
     pk = pk ?? -1;
     pk = parseInt(pk);
     if (isNaN(pk)) {
@@ -250,29 +262,33 @@ export class Model {
 
     load_promise.then(() => {
       if (pk === -1) {
-        pk = this.values_list[0].pk
+        pk = this.values_list[0].pk;
       }
       const id = uuidv4();
-      this.socket.send(JSON.stringify({
-        event: 'model',
-        event_type: 'detail_view',
-        event_id: id,
-        args: {
-          model_name: this.model_name,
-          model_query: this.model_query,
-          pk,
-          template_context
-        }
-      }));
+      this.socket.send(
+        JSON.stringify({
+          event: "model",
+          event_type: "detail_view",
+          event_id: id,
+          args: {
+            model_name: this.model_name,
+            model_query: this.model_query,
+            pk,
+            template_context,
+          },
+        }),
+      );
 
-      this.open_request[id] = [(data) => {
-        $div_list.append(data.html);
-        app.refresh($div_list);
-        cb_resolve && cb_resolve(data);
-      }, (res) => {
-        cb_reject && cb_reject(res);
-      }];
-
+      this.open_request[id] = [
+        (data) => {
+          $div_list.append(data.html);
+          app.refresh($div_list);
+          cb_resolve && cb_resolve(data);
+        },
+        (res) => {
+          cb_reject && cb_reject(res);
+        },
+      ];
     });
 
     return $div_list;
@@ -289,11 +305,14 @@ export class Model {
 
     let self = this;
     $forms.each(function () {
-      let pk = $(this).data('model_pk');
+      let pk = $(this).data("model_pk");
       let instance = null;
-      if(pk === -1 && (self.values.pk === undefined || self.values.pk === -1)) {
+      if (
+        pk === -1 &&
+        (self.values.pk === undefined || self.values.pk === -1)
+      ) {
         instance = self.values;
-      } else if(pk !== undefined && pk !== null) {
+      } else if (pk !== undefined && pk !== null) {
         instance = self.byPk(pk);
       }
       if (!instance) {
@@ -302,11 +321,11 @@ export class Model {
 
       for (let form_item of this.elements) {
         let name = form_item.name;
-        if (name && name !== '') {
-          if (form_item.type === 'checkbox') {
+        if (name && name !== "") {
+          if (form_item.type === "checkbox") {
             form_item.checked = instance[name];
-          } else if (form_item.type === 'file') {
-            if(instance[name] instanceof File) {
+          } else if (form_item.type === "file") {
+            if (instance[name] instanceof File) {
               let container = new DataTransfer();
               container.items.add(instance[name]);
               form_item.files = container;
@@ -317,7 +336,6 @@ export class Model {
         }
       }
     });
-
   }
 
   syncForm($forms) {
@@ -330,16 +348,16 @@ export class Model {
 
     $forms.each(function () {
       let $form = $(this);
-      let pk = $form.data('model_pk');
+      let pk = $form.data("model_pk");
       let instance = self.byPk(pk);
       for (let form_item of this.elements) {
         let name = form_item.name;
-        if (name && name !== '') {
-          if (form_item.type === 'hidden') {
+        if (name && name !== "") {
+          if (form_item.type === "hidden") {
             instance[name] = parse_hidden_inputs($(form_item).val());
-          } else if (form_item.type === 'checkbox') {
+          } else if (form_item.type === "checkbox") {
             instance[name] = form_item.checked;
-          } else if (form_item.type === 'file') {
+          } else if (form_item.type === "file") {
             instance[name] = form_item.files[0];
           } else {
             instance[name] = $(form_item).val();
@@ -356,13 +374,19 @@ export class Model {
     }
 
     return instances;
-
   }
 
   createForm(cb_resolve = null, cb_reject = null) {
-    let $div_form = $('<div>');
+    let $div_form = $("<div>");
     this.isConnected().then(() => {
-      this._getForm(null, 'create_form', null, $div_form, cb_resolve, cb_reject);
+      this._getForm(
+        null,
+        "create_form",
+        null,
+        $div_form,
+        cb_resolve,
+        cb_reject,
+      );
     });
 
     return $div_form;
@@ -380,14 +404,14 @@ export class Model {
       load_promise = this.load();
     }
 
-    let $div_form = $('<div>');
+    let $div_form = $("<div>");
 
     load_promise.then(() => {
       if (pk <= -1) {
         pk = this.values_list.at(pk).pk;
       }
 
-      this._getForm(pk, 'edit_form', null, $div_form, cb_resolve, cb_reject);
+      this._getForm(pk, "edit_form", null, $div_form, cb_resolve, cb_reject);
     });
 
     return $div_form;
@@ -412,12 +436,18 @@ export class Model {
         pk = this.values_list.at(pk).pk;
       }
 
-      this._getForm(pk, 'named_form', formName, $div_form, cb_resolve, cb_reject);
+      this._getForm(
+        pk,
+        "named_form",
+        formName,
+        $div_form,
+        cb_resolve,
+        cb_reject,
+      );
     });
 
     return $div_form;
   }
-
 
   _getForm(pk, event_type, formName, $div_form, cb_resolve, cb_reject) {
     pk = parseInt(pk);
@@ -425,48 +455,58 @@ export class Model {
       pk = -1;
     }
     const id = uuidv4();
-    this.socket.send(JSON.stringify({
-      event: 'model',
-      event_type: event_type,
-      event_id: id,
-      args: {
-        model_name: this.model_name,
-        model_query: this.model_query,
-        pk: pk,
-        form_name: formName
-      }
-    }));
+    this.socket.send(
+      JSON.stringify({
+        event: "model",
+        event_type: event_type,
+        event_id: id,
+        args: {
+          model_name: this.model_name,
+          model_query: this.model_query,
+          pk: pk,
+          form_name: formName,
+        },
+      }),
+    );
 
-    const className = pk === null || pk === -1 ? 'create' : 'edit';
+    const className = pk === null || pk === -1 ? "create" : "edit";
 
-    this.open_request[id] = [(data) => {
-      $div_form.append(data.html);
-      let $form = $div_form.closest('form')
-        .addClass(`sdc-model-${className}-form sdc-model-form ${this.form_id}`)
-        .data('model', this)
-        .data('model_pk', pk)
-        .data('form_name', formName);
-      if ($form.length > 0 && !$form[0].hasAttribute('sdc_submit')) {
-        $form.attr('sdc_submit', 'submitModelFormDistributor')
-      }
+    this.open_request[id] = [
+      (data) => {
+        $div_form.append(data.html);
+        let $form = $div_form
+          .closest("form")
+          .addClass(
+            `sdc-model-${className}-form sdc-model-form ${this.form_id}`,
+          )
+          .data("model", this)
+          .data("model_pk", pk)
+          .data("form_name", formName);
+        if ($form.length > 0 && !$form[0].hasAttribute("sdc_submit")) {
+          $form.attr("sdc_submit", "submitModelFormDistributor");
+        }
 
-      app.refresh($div_form);
-      cb_resolve && cb_resolve(data);
-    }, (res) => {
-      cb_reject && cb_reject(res);
-    }];
+        app.refresh($div_form);
+        cb_resolve && cb_resolve(data);
+      },
+      (res) => {
+        cb_reject && cb_reject(res);
+      },
+    ];
   }
 
   new() {
     return new Promise((resolve, reject) => {
-      const $form = $('<form>').append(this.createForm(() => {
-        this.syncFormToModel($form);
-        resolve();
-      }, reject));
-    })
+      const $form = $("<form>").append(
+        this.createForm(() => {
+          this.syncFormToModel($form);
+          resolve();
+        }, reject),
+      );
+    });
   }
 
-  save(pk = -1, fromName = 'edit_form') {
+  save(pk = -1, fromName = "edit_form") {
     pk = parseInt(pk);
     if (isNaN(pk)) {
       pk = -1;
@@ -478,31 +518,41 @@ export class Model {
       } else {
         elem_list = this.values_list;
       }
-      let p_list = []
+      let p_list = [];
       elem_list.forEach((elem) => {
         const id = uuidv4();
-        p_list.push(new Promise((resolve, reject) => {
-          this._readFiles(elem).then((files) => {
-            this.socket.send(JSON.stringify({
-              event: 'model',
-              event_type: 'save',
-              event_id: id,
-              args: {
-                form_name: fromName,
-                model_name: this.model_name,
-                model_query: this.model_query,
-                data: elem,
-                files: files
-              }
-            }));
+        p_list.push(
+          new Promise((resolve, reject) => {
+            this._readFiles(elem).then((files) => {
+              this.socket.send(
+                JSON.stringify({
+                  event: "model",
+                  event_type: "save",
+                  event_id: id,
+                  args: {
+                    form_name: fromName,
+                    model_name: this.model_name,
+                    model_query: this.model_query,
+                    data: elem,
+                    files: files,
+                  },
+                }),
+              );
 
-            this.open_request[id] = [(res) => {
-              let data = typeof res.data.instance === 'string' ? JSON.parse(res.data.instance) : res.data.instance;
-              res.data.instance = this._parseServerRes(data);
-              resolve(res);
-            }, reject];
-          });
-        }));
+              this.open_request[id] = [
+                (res) => {
+                  let data =
+                    typeof res.data.instance === "string"
+                      ? JSON.parse(res.data.instance)
+                      : res.data.instance;
+                  res.data.instance = this._parseServerRes(data);
+                  resolve(res);
+                },
+                reject,
+              ];
+            });
+          }),
+        );
       });
 
       return Promise.all(p_list);
@@ -514,28 +564,36 @@ export class Model {
     return this.isConnected().then(() => {
       return new Promise((resolve, reject) => {
         this._readFiles(values).then((files) => {
-          this.socket.send(JSON.stringify({
-            event: 'model',
-            event_type: 'create',
-            event_id: id,
-            args: {
-              model_name: this.model_name,
-              model_query: this.model_query,
-              data: values,
-              files: files
-            }
-          }));
+          this.socket.send(
+            JSON.stringify({
+              event: "model",
+              event_type: "create",
+              event_id: id,
+              args: {
+                model_name: this.model_name,
+                model_query: this.model_query,
+                data: values,
+                files: files,
+              },
+            }),
+          );
 
-          this.open_request[id] = [(res) => {
-            let data = typeof res.data.instance === 'string' ? JSON.parse(res.data.instance) : res.data.instance;
-            if (this.values?.pk === -1) {
-              this.values_list = [];
-              this.values = null;
-            }
-            res.data.instance = this._parseServerRes(data)[0];
-            resolve(res);
-          }, reject];
-        })
+          this.open_request[id] = [
+            (res) => {
+              let data =
+                typeof res.data.instance === "string"
+                  ? JSON.parse(res.data.instance)
+                  : res.data.instance;
+              if (this.values?.pk === -1) {
+                this.values_list = [];
+                this.values = null;
+              }
+              res.data.instance = this._parseServerRes(data)[0];
+              resolve(res);
+            },
+            reject,
+          ];
+        });
       });
     });
   }
@@ -549,16 +607,18 @@ export class Model {
     const id = uuidv4();
     return this.isConnected().then(() => {
       return new Promise((resolve, reject) => {
-        this.socket.send(JSON.stringify({
-          event: 'model',
-          event_type: 'delete',
-          event_id: id,
-          args: {
-            model_name: this.model_name,
-            model_query: this.model_query,
-            pk: pk
-          }
-        }));
+        this.socket.send(
+          JSON.stringify({
+            event: "model",
+            event_type: "delete",
+            event_id: id,
+            args: {
+              model_name: this.model_name,
+              model_query: this.model_query,
+              pk: pk,
+            },
+          }),
+        );
 
         this.open_request[id] = [resolve, reject];
       });
@@ -569,17 +629,19 @@ export class Model {
     return new Promise((resolve, reject) => {
       if (this._is_connected) {
         resolve();
-      } else if (!this._is_conneting_process || !this.open_request['_connecting_process']) {
+      } else if (
+        !this._is_conneting_process ||
+        !this.open_request["_connecting_process"]
+      ) {
         this._is_conneting_process = true;
-        this.open_request['_connecting_process'] = [() => {
-        }, () => {
-        }]
+        this.open_request["_connecting_process"] = [() => {}, () => {}];
         this._connectToServer().then(() => {
           resolve(this._checkConnection());
         });
       } else {
-        const [resolve_origin, reject_origin] = this.open_request['_connecting_process'];
-        this.open_request['_connecting_process'] = [
+        const [resolve_origin, reject_origin] =
+          this.open_request["_connecting_process"];
+        this.open_request["_connecting_process"] = [
           () => {
             resolve_origin();
             resolve();
@@ -587,8 +649,8 @@ export class Model {
           () => {
             reject_origin();
             reject();
-          }
-        ]
+          },
+        ];
       }
     });
   }
@@ -596,10 +658,9 @@ export class Model {
   close() {
     if (this.socket) {
       this._auto_reconnect = false;
-      this.socket.onclose = () => {
-      };
+      this.socket.onclose = () => {};
       this.socket.close();
-      delete this['socket'];
+      delete this["socket"];
     }
   }
 
@@ -611,55 +672,64 @@ export class Model {
 
   _readFiles(elem) {
     let to_solve = [];
-    100
-    let files = {}
+    100;
+    let files = {};
     for (const [key, value] of Object.entries(elem)) {
       if (value instanceof File) {
-        to_solve.push(new Promise((resolve, reject) => {
-          ((key, value) => {
-            let reader = new FileReader();
-            reader.onload = e => {
-              const id = uuidv4();
-              this.open_request[id] = [resolve, reject];
+        to_solve.push(
+          new Promise((resolve, reject) => {
+            ((key, value) => {
+              let reader = new FileReader();
+              reader.onload = (e) => {
+                const id = uuidv4();
+                this.open_request[id] = [resolve, reject];
 
-              let result = e.target.result;
-              let number_of_chunks = parseInt(Math.ceil(result.length / MAX_FILE_UPLOAD));
-              files[key] = {
-                id: id,
-                file_name: value.name,
-                field_name: key,
-                content_length: value.size,
+                let result = e.target.result;
+                let number_of_chunks = parseInt(
+                  Math.ceil(result.length / MAX_FILE_UPLOAD),
+                );
+                files[key] = {
+                  id: id,
+                  file_name: value.name,
+                  field_name: key,
+                  content_length: value.size,
+                };
+                for (let i = 0; i < number_of_chunks; ++i) {
+                  this.socket.send(
+                    JSON.stringify({
+                      event: "model",
+                      event_type: "upload",
+                      event_id: id,
+                      args: {
+                        chunk: result.slice(
+                          MAX_FILE_UPLOAD * i,
+                          MAX_FILE_UPLOAD * (i + 1),
+                        ),
+                        idx: i,
+                        number_of_chunks: number_of_chunks,
+                        file_name: value.name,
+                        field_name: key,
+                        content_length: value.size,
+                        content_type: value.type,
+                        model_name: this.model_name,
+                        model_query: this.model_query,
+                      },
+                    }),
+                  );
+                }
               };
-              for (let i = 0; i < number_of_chunks; ++i) {
-                this.socket.send(JSON.stringify({
-                  event: 'model',
-                  event_type: 'upload',
-                  event_id: id,
-                  args: {
-                    chunk: result.slice(MAX_FILE_UPLOAD * i, MAX_FILE_UPLOAD * (i + 1)),
-                    idx: i,
-                    number_of_chunks: number_of_chunks,
-                    file_name: value.name,
-                    field_name: key,
-                    content_length: value.size,
-                    content_type: value.type,
-                    model_name: this.model_name,
-                    model_query: this.model_query
-                  }
-                }));
-              }
-            }
-            reader.onerror = () => {
-              reject()
-            };
-            reader.readAsBinaryString(value);
-          })(key, value);
-        }))
+              reader.onerror = () => {
+                reject();
+              };
+              reader.readAsBinaryString(value);
+            })(key, value);
+          }),
+        );
       }
     }
 
     return Promise.all(to_solve).then(() => {
-      return files
+      return files;
     });
   }
 
@@ -671,38 +741,36 @@ export class Model {
         this._closeOpenRequest(data.event_id);
       }
       if (data.msg || data.header) {
-        trigger('pushErrorMsg', data.header || '', data.msg || '');
+        trigger("pushErrorMsg", data.header || "", data.msg || "");
       }
 
-      if (data.type === 'connect') {
-        this.open_request['_connecting_process'][1](data);
-        this._closeOpenRequest('_connecting_process');
+      if (data.type === "connect") {
+        this.open_request["_connecting_process"][1](data);
+        this._closeOpenRequest("_connecting_process");
         this._auto_reconnect = false;
         this.socket.close();
       }
     } else {
-
       if (data.msg || data.header) {
-        trigger('pushMsg', data.header || '', data.msg || '');
+        trigger("pushMsg", data.header || "", data.msg || "");
       }
 
-      if (data.type === 'connect') {
+      if (data.type === "connect") {
         this._is_connected = true;
         this._is_conneting_process = false;
-        this.open_request['_connecting_process'][0](data);
-        this._closeOpenRequest('_connecting_process');
-      } else if (['load', 'named_view', 'detail_view'].includes(data.type)) {
+        this.open_request["_connecting_process"][0](data);
+        this._closeOpenRequest("_connecting_process");
+      } else if (["load", "named_view", "detail_view"].includes(data.type)) {
         const json_res = JSON.parse(data.args.data);
         this.values_list = [];
         data.args.data = this._parseServerRes(json_res);
-
-      } else if (data.type === 'on_update' || data.type === 'on_create') {
+      } else if (data.type === "on_update" || data.type === "on_create") {
         const json_res = JSON.parse(data.args.data);
 
         let obj = this._parseServerRes(json_res);
         let cb;
 
-        if (data.type === 'on_create') {
+        if (data.type === "on_create") {
           cb = this.on_create;
         } else {
           cb = this.on_update;
@@ -710,10 +778,9 @@ export class Model {
 
         cb(obj);
         data.args.data = obj;
-
       }
 
-      let instance = data.data?.instance
+      let instance = data.data?.instance;
       if (instance) {
         data.data.instance = JSON.parse(data.data.instance);
       }
@@ -726,7 +793,7 @@ export class Model {
   }
 
   noOpenRequests() {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       if (Object.keys(this.open_request).length === 0) {
         return resolve();
       }
@@ -738,27 +805,31 @@ export class Model {
   _closeOpenRequest(event_id) {
     delete this.open_request[event_id];
     if (Object.keys(this.open_request).length === 0) {
-      this._onNoOpenRequests.forEach(x => x());
+      this._onNoOpenRequests.forEach((x) => x());
       this._onNoOpenRequests = [];
     }
-
   }
 
   _connectToServer() {
     return new Promise((resolve) => {
-
-      const model_identifier = `${this.model_name}` + (this.model_id > 0 ? `/${this.model_id}` : '');
+      const model_identifier =
+        `${this.model_name}` + (this.model_id > 0 ? `/${this.model_id}` : "");
       if (window.location.protocol === "https:") {
-        this.socket = new WebSocket(`wss://${window.location.host}/sdc_ws/model/${model_identifier}`);
+        this.socket = new WebSocket(
+          `wss://${window.location.host}/sdc_ws/model/${model_identifier}`,
+        );
       } else {
-        this.socket = new WebSocket(`ws://${window.location.host}/sdc_ws/model/${model_identifier}`);
+        this.socket = new WebSocket(
+          `ws://${window.location.host}/sdc_ws/model/${model_identifier}`,
+        );
       }
-
 
       this.socket.onmessage = this._onMessage.bind(this);
 
       this.socket.onclose = (e) => {
-        console.error(`SDC Model (${this.model_name}, ${this.model_id}) Socket closed unexpectedly`);
+        console.error(
+          `SDC Model (${this.model_name}, ${this.model_id}) Socket closed unexpectedly`,
+        );
         this._is_connected = false;
         for (const [_key, value] of Object.entries(this.open_request)) {
           value[1](e);
@@ -767,8 +838,7 @@ export class Model {
 
         setTimeout(() => {
           if (this._auto_reconnect) {
-            this._connectToServer().then(() => {
-            });
+            this._connectToServer().then(() => {});
           }
         }, 1000);
       };
@@ -778,32 +848,30 @@ export class Model {
         if (this._is_connected) {
           try {
             this.socket.close();
-          } catch (e) {
-
-          }
+          } catch (e) {}
         }
       };
 
-
       this.socket.onopen = () => {
         resolve();
-      }
+      };
     });
-
   }
 
   _checkConnection() {
     const id = uuidv4();
     return new Promise((resolve, reject) => {
-      this.socket.send(JSON.stringify({
-        event: 'model',
-        event_type: 'connect',
-        event_id: id,
-        args: {
-          model_name: this.model_name,
-          model_query: this.model_query
-        }
-      }));
+      this.socket.send(
+        JSON.stringify({
+          event: "model",
+          event_type: "connect",
+          event_id: id,
+          args: {
+            model_name: this.model_name,
+            model_query: this.model_query,
+          },
+        }),
+      );
 
       this.open_request[id] = [resolve, reject];
     });
@@ -815,8 +883,8 @@ export class Model {
       const pk = json_data.pk;
       const obj = this.byPk(pk);
       for (const [k, v] of Object.entries(json_data.fields)) {
-        if (v && typeof v === 'object' && v['__is_sdc_model__']) {
-          obj[k] = new SubModel(v['pk'], v['model'])
+        if (v && typeof v === "object" && v["__is_sdc_model__"]) {
+          obj[k] = new SubModel(v["pk"], v["model"]);
         } else {
           obj[k] = v;
         }
@@ -832,6 +900,5 @@ export class Model {
     }
 
     return updated;
-
   }
 }

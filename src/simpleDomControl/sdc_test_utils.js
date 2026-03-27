@@ -1,52 +1,49 @@
 /**
  * @jest-environment jsdom
  */
-;
+import { app } from "./sdc_main.js";
 
-import {app} from './sdc_main.js'
-
-let spy = [], _originAjax;
+let spy = [],
+  _originAjax;
 
 function setDefaults() {
-    if (!jest) throw new Error("JEST is not defined");
-    if (spy.length === 0) {
-        _originAjax = $.ajax.bind($);
+  if (!jest) throw new Error("JEST is not defined");
+  if (spy.length === 0) {
+    _originAjax = $.ajax.bind($);
 
-        spy.push(jest.spyOn(
-            $,
-            'ajax'
-        ));
-        spy[0].mockImplementation(function (a) {
-            return _originAjax(a).then((html) => {
-                return html;
-            }).catch((html) => {
-                return html;
-            });
+    spy.push(jest.spyOn($, "ajax"));
+    spy[0].mockImplementation(function (a) {
+      return _originAjax(a)
+        .then((html) => {
+          return html;
+        })
+        .catch((html) => {
+          return html;
         });
-    }
+    });
+  }
 }
 
-
 function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            // Does this cookie string begin with the name we want?
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                return decodeURIComponent(cookie.substring(name.length + 1));
-            }
-        }
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      // Does this cookie string begin with the name we want?
+      if (cookie.substring(0, name.length + 1) === name + "=") {
+        return decodeURIComponent(cookie.substring(name.length + 1));
+      }
     }
-    return '';
+  }
+  return "";
 }
 
 /**
  * Returns the CSRF token
  */
 export function getCsrfToken() {
-    return getCookie('csrftoken');
+  return getCookie("csrftoken");
 }
 
 /**
@@ -56,36 +53,32 @@ export function getCsrfToken() {
  * @returns {Promise<Array<{AbstractSDC}>>}
  */
 export async function controllerFromTestHtml(html, afterLifecycle = null) {
-    setDefaults();
-    const $body = $('body');
-    app.updateJquery();
-    $body.safeEmpty().append(html);
-    app._isInit = false;
-    app.cleanCache();
-    await app.init_sdc();
+  setDefaults();
+  const $body = $("body");
+  app.updateJquery();
+  $body.safeEmpty().append(html);
+  app._isInit = false;
+  app.cleanCache();
+  await app.init_sdc();
 
+  let children = app.rootController.iterateAllChildren();
 
-    let children = app.rootController.iterateAllChildren();
+  if (!afterLifecycle) {
+    return children;
+  }
 
-    if (!afterLifecycle) {
-        return children
-    }
+  const origenRefresh = children[0].onRefresh;
 
-    const origenRefresh = children[0].onRefresh;
+  const refreshSpy = jest.spyOn(children[0], "onRefresh");
 
-    const refreshSpy = jest.spyOn(
-        children[0],
-        'onRefresh'
-    );
-
-    return new Promise((resolve) => {
-        refreshSpy.mockImplementation(function () {
-            refreshSpy.mockRestore();
-            const res = origenRefresh.apply(children[0], arguments);
-            resolve(children);
-            return res;
-        });
+  return new Promise((resolve) => {
+    refreshSpy.mockImplementation(function () {
+      refreshSpy.mockRestore();
+      const res = origenRefresh.apply(children[0], arguments);
+      resolve(children);
+      return res;
     });
+  });
 }
 
 /**
@@ -96,22 +89,26 @@ export async function controllerFromTestHtml(html, afterLifecycle = null) {
  * @param origen_html{string} HTML: Mocked content of the content in your target HTML container.
  * @returns {Promise<{AbstractSDC}>}
  */
-export async function get_controller(tag_name, init_arguments = {}, origen_html = '') {
-    setDefaults();
-    const $body = $('body');
-    app.updateJquery();
+export async function get_controller(
+  tag_name,
+  init_arguments = {},
+  origen_html = "",
+) {
+  setDefaults();
+  const $body = $("body");
+  app.updateJquery();
 
-    $body.safeEmpty();
+  $body.safeEmpty();
 
-    const $controller = $(`<${tag_name}>${origen_html}</${tag_name}>`);
-    for (const [key, value] of Object.entries(init_arguments)) {
-        $controller.data(key, value);
-    }
-    const $divContainer = $('<div></div>').append($controller);
+  const $controller = $(`<${tag_name}>${origen_html}</${tag_name}>`);
+  for (const [key, value] of Object.entries(init_arguments)) {
+    $controller.data(key, value);
+  }
+  const $divContainer = $("<div></div>").append($controller);
 
-    $body.append($divContainer);
-    app._isInit = false;
-    app.cleanCache();
-    await app.init_sdc();
-    return app.getController($controller);
+  $body.append($divContainer);
+  app._isInit = false;
+  app.cleanCache();
+  await app.init_sdc();
+  return app.getController($controller);
 }
