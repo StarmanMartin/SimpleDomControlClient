@@ -26,8 +26,8 @@
   "author": "Martin Starman",
   "license": "MIT",
   "devDependencies": {
-    "@babel/eslint-parser": "^7.27.1",
     "@babel/core": "^7.26.10",
+    "@babel/eslint-parser": "^7.27.1",
     "@babel/plugin-transform-runtime": "^7.26.10",
     "@babel/preset-env": "^7.26.9",
     "@babel/preset-react": "^7.26.3",
@@ -50,6 +50,7 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "micromatch": "^4.0.8",
+    "prettier": "^3.8.1",
     "sass": "^1.85.1",
     "through2": "^4.0.2",
     "vinyl-named": "^1.1.0",
