@@ -425,7 +425,7 @@ export let app = {
    * @param {AbstractSDC} leafController
    * @return {Promise<void>}
    */
-  refresh: ($dom, leafController) => {
+  refresh: ($dom, leafController = null) => {
     return refresh($dom, leafController);
   },
 };

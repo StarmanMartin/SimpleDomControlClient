@@ -1,11 +1,14 @@
-import { app } from "./simpleDomControl/sdc_main.js";
-import { AbstractSDC } from "./simpleDomControl/AbstractSDC.js";
+import {app} from "./simpleDomControl/sdc_main.js";
+import {AbstractSDC} from "./simpleDomControl/AbstractSDC.js";
+import SdcModel, {SdcQuerySet} from "./simpleDomControl/sdc_model.js";
+import {registerModel} from "./simpleDomControl/sdc_socket.js";
 import {
   on,
   trigger,
   allOff,
   setEvent,
 } from "./simpleDomControl/sdc_events.js";
+
 import {
   clearErrorsInForm,
   setErrorsInForm,
@@ -15,7 +18,7 @@ import {
   controllerFactory,
   runControlFlowFunctions,
 } from "./simpleDomControl/sdc_controller.js";
-import { close } from "./simpleDomControl/sdc_server_call.js";
+import {close} from "./simpleDomControl/sdc_server_call.js";
 import {
   get_controller,
   getCsrfToken,
@@ -23,7 +26,7 @@ import {
 } from "./simpleDomControl/sdc_test_utils.js";
 
 const socketReconnect = close;
-const test_utils = { get_controller, getCsrfToken, controllerFromTestHtml };
+const test_utils = {get_controller, getCsrfToken, controllerFromTestHtml};
 
 export {
   app,
@@ -39,4 +42,7 @@ export {
   runControlFlowFunctions,
   socketReconnect,
   test_utils,
+  SdcModel,
+  SdcQuerySet,
+  registerModel
 };

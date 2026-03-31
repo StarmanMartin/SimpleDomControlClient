@@ -1,10 +1,10 @@
-import { allOff } from "./sdc_events.js";
-import { app } from "./sdc_main.js";
-import { Model } from "./sdc_socket.js";
-import { callServer } from "./sdc_server_call.js";
+import {allOff} from "./sdc_events.js";
+import {app} from "./sdc_main.js";
+import {Model} from "./sdc_socket.js";
+import {SdcQuerySet} from "./sdc_model.js";
+import {callServer} from "./sdc_server_call.js";
 import {
   uuidv4,
-  setErrorsInForm,
   clearErrorsInForm,
   tagNameToCamelCase,
   tagNameToReadableName,
@@ -209,7 +209,7 @@ export class AbstractSDC {
     if (!app || app.length < 2) {
       console.error(
         "To use the serverCall function the contentUrl must be set: " +
-          this.name,
+        this.name,
       );
       return;
     }
@@ -221,6 +221,12 @@ export class AbstractSDC {
       methode,
       args,
     );
+  }
+
+  querySet(modelName, modelQuery = {}) {
+    const newQuerySet = new SdcQuerySet(modelName, modelQuery);
+    this._models.push(newQuerySet);
+    return newQuerySet;
   }
 
   /**
@@ -312,45 +318,41 @@ export class AbstractSDC {
     if (!this._isMixin) {
       e.stopPropagation();
       e.preventDefault();
-      let { model, form_name } = $form.data();
-      const values = model.syncForm($form);
-      for (let instance_value of values) {
-        p_list.push(
-          new Promise((resolve, reject) => {
-            let prom;
-            if (instance_value.pk !== null && instance_value.pk >= 0) {
-              prom = model.save(instance_value.pk, form_name);
-            } else {
-              prom = model.create(instance_value);
-            }
+      let {model, form_name} = $form.data();
+      model.syncForm($form);
+      p_list.push(new Promise((resolve, reject) => {
+        let prom;
+        if (model.pk !== null && model.pk >= 0) {
+          prom = model.save(form_name);
+        } else {
+          prom = model.create();
+        }
 
-            prom
-              .then((res) => {
-                clearErrorsInForm($form);
-                this.submit_model_form_success &&
-                  this.submit_model_form_success(res[0]);
-                for (const controller of this.iterateAllChildren()) {
-                  controller.submit_model_form_success &&
-                    controller.submit_model_form_success(res[0]);
-                }
-                resolve(res);
-              })
-              .catch((data) => {
-                this.reconcile(
-                  $(`<div class="container-fluid">${data.html}</div>`),
-                  $form.find(".container-fluid").first(),
-                );
-                this.submit_model_form_error &&
-                  this.submit_model_form_error(data);
-                for (const controller of this.iterateAllChildren()) {
-                  controller.submit_model_form_error &&
-                    controller.submit_model_form_error(data);
-                }
-                reject(data);
-              });
-          }),
-        );
-      }
+        prom
+          .then((res) => {
+            clearErrorsInForm($form);
+            this.submit_model_form_success &&
+            this.submit_model_form_success(res[0]);
+            for (const controller of this.iterateAllChildren()) {
+              controller.submit_model_form_success &&
+              controller.submit_model_form_success(res[0]);
+            }
+            resolve(res);
+          })
+          .catch((data) => {
+            this.reconcile(
+              $(`<div class="container-fluid">${data.html}</div>`),
+              $form.find(".container-fluid").first(),
+            );
+            this.submit_model_form_error &&
+            this.submit_model_form_error(data);
+            for (const controller of this.iterateAllChildren()) {
+              controller.submit_model_form_error &&
+              controller.submit_model_form_error(data);
+            }
+            reject(data);
+          });
+      }));
     }
 
     return Promise.all(p_list).then((res) => {
