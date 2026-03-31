@@ -4,7 +4,18 @@ import {app} from "./sdc_main.js";
 import {trigger} from "./sdc_events.js";
 
 const MAX_FILE_UPLOAD = 25000;
+const CONNECTING_REQUEST_ID = "_connecting_process";
 
+/**
+ * Parse hidden input values back into the closest JavaScript primitive.
+ *
+ * Hidden inputs are often used to preserve values that were originally booleans,
+ * numbers or quoted strings. This keeps form-to-model sync from turning
+ * everything into plain strings.
+ *
+ * @param {string} value
+ * @returns {*}
+ */
 function parse_hidden_inputs(value) {
   let isFloatReg = /^-?\d+\.?\d+$/;
   let isIntReg = /^-?\d+$/;
@@ -27,11 +38,28 @@ function parse_hidden_inputs(value) {
   return value;
 }
 
+/**
+ * Normalize an incoming primary key value.
+ *
+ * `-1` is used throughout this module as the sentinel for "new object / no pk".
+ *
+ * @param {*} pk
+ * @returns {number}
+ */
+function normalizePk(pk) {
+  const normalizedPk = parseInt(pk ?? -1, 10);
+  return Number.isNaN(normalizedPk) ? -1 : normalizedPk;
+}
+
 export class SdcQuerySet {
   /**
+   * Lightweight client-side collection wrapper around the SDC model websocket.
    *
-   * @param modelName {string}
-   * @param modelQuery {json}
+   * The queryset exposes array-like access through a proxy while also keeping
+   * track of socket state and outstanding requests for that model.
+   *
+   * @param {string} modelName
+   * @param {object} modelQuery
    */
   constructor(modelName, modelQuery = {}) {
     this.values_list = [];
@@ -44,6 +72,7 @@ export class SdcQuerySet {
     this._is_conneting_process = false;
     this._auto_reconnect = true;
     this.socket = null;
+    // Request resolvers are stored by websocket event id until the server responds.
     this.open_request = {};
     this.modelId = 0;
     this.on_update = () => {
@@ -84,32 +113,58 @@ export class SdcQuerySet {
   }
 
 
+  /**
+   * Number of model instances currently present in the queryset cache.
+   *
+   * @returns {number}
+   */
   get length() {
     return this.values_list.length;
   }
 
+  /**
+   * Resolve a model instance by id, loading the queryset first if needed.
+   *
+   * @param {*} id
+   * @returns {Promise<SdcModel|null>}
+   */
   async byId(id) {
     if (!this.loaded) {
       await this.load();
     }
     if (id !== null) {
-      id = parseInt(id);
-      if (isNaN(id)) {
-        id = -1;
-      }
-      return this.values_list.find((elm) => elm.id === id);
+      const normalizedId = normalizePk(id);
+      return this.values_list.find((elm) => elm.id === normalizedId) ?? null;
     }
 
     return null;
   }
 
+  /**
+   * Resolve a model instance by pk from the current in-memory queryset only.
+   *
+   * This is intentionally synchronous and is used by websocket response parsing.
+   *
+   * @param {*} pk
+   * @returns {SdcModel|null}
+   */
+  byPk(pk) {
+    const normalizedPk = normalizePk(pk);
+    return this.values_list.find((elm) => elm.id === normalizedPk) ?? null;
+  }
+
+  /**
+   * Merge additional query constraints into the current queryset.
+   *
+   * @param {object} modelQuery
+   * @returns {SdcQuerySet}
+   */
   filter(modelQuery) {
     this.modelQuery = Object.assign({}, this.modelQuery, modelQuery);
     return this;
   }
 
   /**
-   *
    * @returns {SdcModel}
    */
   new() {
@@ -119,6 +174,12 @@ export class SdcQuerySet {
   }
 
 
+  /**
+   * Load model instances matching the current query into the queryset cache.
+   *
+   * @param {?object} modelQuery
+   * @returns {Promise<SdcQuerySet>}
+   */
   async load(modelQuery = null) {
     this.modelQuery = modelQuery ?? this.modelQuery;
     const result = await this._sendLoad();
@@ -127,6 +188,11 @@ export class SdcQuerySet {
     return this;
   }
 
+  /**
+   * Request the server-side queryset data over the model websocket.
+   *
+   * @returns {Promise<*>}
+   */
   _sendLoad() {
     return this.isConnected().then(() => {
       const id = uuidv4();
@@ -149,6 +215,12 @@ export class SdcQuerySet {
   }
 
 
+  /**
+   * Render the list-view endpoint for the current model.
+   *
+   * @param {object} options
+   * @returns {*}
+   */
   _sendListView(
     {
       model_query = {},
@@ -166,6 +238,12 @@ export class SdcQuerySet {
     });
   }
 
+  /**
+   * Render a named model view and append its HTML to a container element.
+   *
+   * @param {object} options
+   * @returns {*}
+   */
   view({
          viewName = "html_list_template",
          model_query = {},
@@ -206,6 +284,12 @@ export class SdcQuerySet {
     return $div_list;
   }
 
+  /**
+   * Render the detail-view endpoint for a single model instance.
+   *
+   * @param {object} options
+   * @returns {*}
+   */
   _sendDetailView({
                     pk = null,
                     cb_resolve = null,
@@ -213,11 +297,7 @@ export class SdcQuerySet {
                     template_context = {},
                   }
   ) {
-    pk = pk ?? -1;
-    pk = parseInt(pk);
-    if (isNaN(pk)) {
-      pk = -1;
-    }
+    pk = normalizePk(pk);
     let $div_list = $('<div class="container-fluid">');
 
     this.isConnected().then(() => {
@@ -254,6 +334,12 @@ export class SdcQuerySet {
     return $div_list;
   }
 
+  /**
+   * Fetch a model form fragment and attach the SDC form metadata expected by
+   * the rest of the client.
+   *
+   * @param {object} options
+   */
   getForm({modelObj, event_type, formName, $div_form, cb_resolve, cb_reject, formId}) {
     const id = uuidv4();
     const pk = modelObj.id ?? -1;
@@ -299,8 +385,9 @@ export class SdcQuerySet {
   }
 
   /**
+   * Fetch a single model instance matching the current query.
    *
-   * @param modelQuery {object}
+   * @param {?object} modelQuery
    * @returns {Promise<SdcModel>}
    */
   async get(modelQuery = null) {
@@ -333,16 +420,25 @@ export class SdcQuerySet {
       });
   }
 
+  /**
+   * Ensure the websocket is open and has completed the server-side connect
+   * handshake before issuing model requests.
+   *
+   * Multiple callers can arrive while a connection attempt is already in
+   * progress. In that case they are queued behind the same synthetic request id.
+   *
+   * @returns {Promise<void>}
+   */
   isConnected() {
     return new Promise((resolve, reject) => {
       if (this._is_connected) {
         resolve();
       } else if (
         !this._is_conneting_process ||
-        !this.open_request["_connecting_process"]
+        !this.open_request[CONNECTING_REQUEST_ID]
       ) {
         this._is_conneting_process = true;
-        this.open_request["_connecting_process"] = [() => {
+        this.open_request[CONNECTING_REQUEST_ID] = [() => {
         }, () => {
         }];
         this._connectToServer().then(() => {
@@ -350,8 +446,8 @@ export class SdcQuerySet {
         });
       } else {
         const [resolve_origin, reject_origin] =
-          this.open_request["_connecting_process"];
-        this.open_request["_connecting_process"] = [
+          this.open_request[CONNECTING_REQUEST_ID];
+        this.open_request[CONNECTING_REQUEST_ID] = [
           () => {
             resolve_origin();
             resolve();
@@ -365,6 +461,9 @@ export class SdcQuerySet {
     });
   }
 
+  /**
+   * Close the websocket and disable automatic reconnect for this queryset.
+   */
   close() {
     if (this.socket) {
       this._auto_reconnect = false;
@@ -375,12 +474,23 @@ export class SdcQuerySet {
     }
   }
 
+  /**
+   * Drop the locally cached model instances.
+   *
+   * @returns {SdcQuerySet}
+   */
   clean() {
     this.values_list = [];
     return this;
   }
 
 
+  /**
+   * Upload attached `File` values in fixed-size chunks before save/create calls.
+   *
+   * @param {object} elem
+   * @returns {Promise<object>}
+   */
   _readFiles(elem) {
     let to_solve = [];
     let files = {};
@@ -443,6 +553,12 @@ export class SdcQuerySet {
     });
   }
 
+  /**
+   * Route websocket responses to the matching pending request and update local
+   * state when the server sends model payloads.
+   *
+   * @param {MessageEvent} e
+   */
   _onMessage(e) {
     let data = JSON.parse(e.data);
     if (data.is_error) {
@@ -455,8 +571,8 @@ export class SdcQuerySet {
       }
 
       if (data.type === "connect") {
-        this.open_request["_connecting_process"][1](data);
-        this._closeOpenRequest("_connecting_process");
+        this.open_request[CONNECTING_REQUEST_ID][1](data);
+        this._closeOpenRequest(CONNECTING_REQUEST_ID);
         this._auto_reconnect = false;
         this.socket.close();
       }
@@ -468,8 +584,8 @@ export class SdcQuerySet {
       if (data.type === "connect") {
         this._is_connected = true;
         this._is_conneting_process = false;
-        this.open_request["_connecting_process"][0](data);
-        this._closeOpenRequest("_connecting_process");
+        this.open_request[CONNECTING_REQUEST_ID][0](data);
+        this._closeOpenRequest(CONNECTING_REQUEST_ID);
       } else if (["load", "named_view", "detail_view"].includes(data.type)) {
         const json_res = JSON.parse(data.args.data);
         this.values_list = [];
@@ -502,6 +618,11 @@ export class SdcQuerySet {
     }
   }
 
+  /**
+   * Wait until all in-flight websocket requests for this queryset are resolved.
+   *
+   * @returns {Promise<void>}
+   */
   noOpenRequests() {
     return new Promise((resolve) => {
       if (Object.keys(this.open_request).length === 0) {
@@ -512,6 +633,12 @@ export class SdcQuerySet {
     });
   }
 
+  /**
+   * Remove a completed request and wake any `noOpenRequests()` waiters when the
+   * request map becomes empty.
+   *
+   * @param {string} event_id
+   */
   _closeOpenRequest(event_id) {
     delete this.open_request[event_id];
     if (Object.keys(this.open_request).length === 0) {
@@ -520,6 +647,11 @@ export class SdcQuerySet {
     }
   }
 
+  /**
+   * Establish the raw websocket connection for this queryset.
+   *
+   * @returns {Promise<void>}
+   */
   _connectToServer() {
     return new Promise((resolve) => {
       const modelIdentifier =
@@ -570,6 +702,11 @@ export class SdcQuerySet {
     });
   }
 
+  /**
+   * Perform the application-level connect handshake once the websocket opens.
+   *
+   * @returns {Promise<*>}
+   */
   _checkConnection() {
     const id = uuidv4();
     return new Promise((resolve, reject) => {
@@ -589,11 +726,17 @@ export class SdcQuerySet {
     });
   }
 
+  /**
+   * Convert the backend model payload into locally tracked model objects.
+   *
+   * @param {Array<object>} res
+   * @returns {Array<SdcModel>}
+   */
   _parseServerRes(res) {
     let updated = [];
     for (let json_data of res) {
       const pk = json_data.pk;
-      const obj = this.byId(pk);
+      const obj = this.byPk(pk);
       for (const [k, v] of Object.entries(json_data.fields)) {
         if (v && typeof v === "object" && v["__is_sdc_model__"]) {
           obj[k] = new SubModel(v["pk"], v["model"]);
@@ -617,6 +760,11 @@ export class SdcQuerySet {
 }
 
 export default class SdcModel {
+  /**
+   * Base model wrapper used by SDC model registrations.
+   *
+   * @param {string} modelName
+   */
   constructor(modelName) {
     this._id = null;
     this._isloaded = false;
@@ -624,6 +772,12 @@ export default class SdcModel {
     this.modelName = modelName;
   }
 
+  /**
+   * Attach the queryset that owns this model instance.
+   *
+   * @param {SdcQuerySet} querySet
+   * @param {boolean} isLoaded
+   */
   _setQuerySet(querySet, isLoaded) {
     this._querySet = querySet;
     this._isloaded = isLoaded;
@@ -641,22 +795,51 @@ export default class SdcModel {
     return this._id;
   }
 
+  /**
+   * Request the server-rendered detail view for this model instance.
+   *
+   * @param {object} options
+   * @returns {*}
+   */
   detailView({cb_resolve = null, cb_reject = null, template_context = {}}) {
     return this._querySet.detailView({pk: this.id, cb_resolve, cb_reject, template_context});
   }
 
+  /**
+   * Backwards-compatible alias for syncing values from a form into the model.
+   *
+   * @param {*} $forms
+   * @returns {*}
+   */
   syncFormToModel($forms) {
     return this.syncForm($forms);
   }
 
-  syncModelToForm($forms) {
+  /**
+   * Resolve the form collection associated with this model instance.
+   *
+   * @param {*} $forms
+   * @returns {*}
+   */
+  _resolveForms($forms) {
     if (!$forms || !$forms.hasClass(this.formId)) {
-      $forms = $(`.${this.formId}`);
+      return $(`.${this.formId}`);
     }
+
+    return $forms;
+  }
+
+  /**
+   * Copy the current model state into matching form fields.
+   *
+   * @param {*} $forms
+   */
+  syncModelToForm($forms) {
+    $forms = this._resolveForms($forms);
 
     const self = this;
     $forms.each(function () {
-      const pk = parseInt($(this).data("model_pk"));
+      const pk = normalizePk($(this).data("model_pk"));
       if (self.id !== pk) {
         return;
       }
@@ -680,14 +863,20 @@ export default class SdcModel {
     });
   }
 
+  /**
+   * Copy matching form values back onto the current model instance.
+   *
+   * Hidden inputs are parsed to their original primitive type when possible.
+   *
+   * @param {*} $forms
+   * @returns {*}
+   */
   syncForm($forms) {
-    if (!$forms || !$forms.hasClass(this.formId)) {
-      $forms = $(`.${this.formId}`);
-    }
+    $forms = this._resolveForms($forms);
 
     const self = this;
     $forms.each(function () {
-      const pk = parseInt($(this).data("model_pk"));
+      const pk = normalizePk($(this).data("model_pk"));
       if (self.id !== pk && (self.id !== null || pk !== -1)) {
         return;
       }
@@ -711,6 +900,12 @@ export default class SdcModel {
     });
   }
 
+  /**
+   * Render the correct server-side form for this model state.
+   *
+   * @param {object} options
+   * @returns {*}
+   */
   form({cb_resolve = null, cb_reject = null}) {
     if (this.id === null || this.id === -1) {
       return this._createForm({cb_reject, cb_resolve});
@@ -718,6 +913,12 @@ export default class SdcModel {
     return this._editForm({cb_reject, cb_resolve});
   }
 
+  /**
+   * Render the create form for a new model instance.
+   *
+   * @param {object} options
+   * @returns {*}
+   */
   _createForm({cb_resolve = null, cb_reject = null}) {
     let $div_form = $("<div>");
     this._querySet.getForm(
@@ -735,6 +936,12 @@ export default class SdcModel {
     return $div_form;
   }
 
+  /**
+   * Render the edit form for an existing model instance.
+   *
+   * @param {object} options
+   * @returns {*}
+   */
   _editForm({cb_resolve = null, cb_reject = null}) {
     let $div_form = $("<div>");
 
@@ -752,6 +959,12 @@ export default class SdcModel {
     return $div_form;
   }
 
+  /**
+   * Render a named server-side form for this model.
+   *
+   * @param {object} options
+   * @returns {*}
+   */
   namedForm({formName, cb_resolve = null, cb_reject = null}) {
     let $div_form = $('<div  class="container-fluid">');
 
@@ -772,11 +985,24 @@ export default class SdcModel {
   }
 
 
+  /**
+   * Validate a field value using the supplied field config.
+   *
+   * @param {*} value
+   * @param {object} config
+   */
   validate(value, config) {
     const err = validateField(value, config);
     if (err) throw new Error(err);
   }
 
+  /**
+   * Convert a raw input value into the shape expected by the field config.
+   *
+   * @param {*} value
+   * @param {object} config
+   * @returns {*}
+   */
   parseValue(value, config) {
     const {
       type
@@ -847,13 +1073,17 @@ export default class SdcModel {
     }
 
     return value;
-
   }
 }
 
-function
-
-validateField(value, config) {
+/**
+ * Validate a field value against the field metadata received from the backend.
+ *
+ * @param {*} value
+ * @param {object} config
+ * @returns {?string}
+ */
+function validateField(value, config) {
   const {
     type,
     required,
