@@ -97,6 +97,10 @@ export class AbstractSDC {
     });
   }
 
+  /**
+   *
+   * @return {Promise<*>|*}
+   */
   onInit() {
     if (app.DEBUG && !this._isMixin) {
       console.DEBUG(Array.apply(null, arguments), this._tagName);
@@ -314,18 +318,17 @@ export class AbstractSDC {
    * Model Form Events
    */
   defaultSubmitModelForm($form, e) {
-    let p_list = [];
     if (!this._isMixin) {
       e.stopPropagation();
       e.preventDefault();
       let {model, form_name} = $form.data();
-      model.syncForm($form);
-      p_list.push(new Promise((resolve, reject) => {
+      let data = model.syncForm($form);
+      return new Promise((resolve, reject) => {
         let prom;
-        if (model.pk !== null && model.pk >= 0) {
-          prom = model.save(form_name);
+        if (model.id !== null && model.id >= 0) {
+          prom = model.save({formName: form_name, data});
         } else {
-          prom = model.create();
+          prom = model.create({data});
         }
 
         prom
@@ -337,6 +340,7 @@ export class AbstractSDC {
               controller.submit_model_form_success &&
               controller.submit_model_form_success(res[0]);
             }
+
             resolve(res);
           })
           .catch((data) => {
@@ -350,13 +354,12 @@ export class AbstractSDC {
               controller.submit_model_form_error &&
               controller.submit_model_form_error(data);
             }
+
             reject(data);
           });
-      }));
+      });
     }
 
-    return Promise.all(p_list).then((res) => {
-      return Object.assign({}, ...res.flat());
-    });
+    return Promise.resolve();
   }
 }

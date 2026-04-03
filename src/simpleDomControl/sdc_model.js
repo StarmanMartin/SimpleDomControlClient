@@ -16,7 +16,7 @@ const CONNECTING_REQUEST_ID = "_connecting_process";
  * @param {string} value
  * @returns {*}
  */
-function parse_hidden_inputs(value) {
+function parseHiddenInputs(value) {
   let isFloatReg = /^-?\d+\.?\d+$/;
   let isIntReg = /^-?\d+$/;
   let isBoolReg = /^(true|false)$/;
@@ -29,7 +29,7 @@ function parse_hidden_inputs(value) {
   } else if (value.toLowerCase() === "none") {
     return null;
   } else if (value.match(isIntReg)) {
-    return parseInt(value);
+    return parseInt(value, 10);
   } else if (value.match(isFloatReg)) {
     return parseFloat(value);
   } else if (value.match(isStringReg)) {
@@ -62,35 +62,35 @@ export class SdcQuerySet {
    * @param {object} modelQuery
    */
   constructor(modelName, modelQuery = {}) {
-    this.values_list = [];
+    this.valuesList = [];
     this.loaded = false;
     this.modelName = modelName;
     this.modelQuery = modelQuery ?? {};
     this._onNoOpenRequests = [];
-    this.values_list = [];
-    this._is_connected = false;
-    this._is_conneting_process = false;
-    this._auto_reconnect = true;
+    this.valuesList = [];
+    this._isConnected = false;
+    this._isConnectingProcess = false;
+    this._autoReconnect = true;
     this.socket = null;
     // Request resolvers are stored by websocket event id until the server responds.
-    this.open_request = {};
+    this.openRequest = {};
     this.modelId = 0;
-    this.on_update = () => {
+    this.onUpdate = () => {
     };
-    this.on_create = () => {
+    this.onCreate = () => {
     };
 
     return new Proxy(this, {
       get(target, prop) {
         if (!isNaN(prop)) {
-          return target.values_list[prop];
+          return target.valuesList[prop];
         }
         return target[prop];
       },
 
       set(target, prop, value) {
         if (!isNaN(prop)) {
-          target.values_list[prop] = value;
+          target.valuesList[prop] = value;
           return true;
         }
         target[prop] = value;
@@ -104,14 +104,42 @@ export class SdcQuerySet {
     return {
       next: () => {
         ++idx;
-        if (idx < this.values_list.length) {
-          return {value: this.values_list[idx], done: false};
+        if (idx < this.valuesList.length) {
+          return {value: this.valuesList[idx], done: false};
         }
         return {value: null, done: true};
       },
     };
   }
 
+  /**
+   *
+   *
+   * @param {Array<integr>|integer|SdcModel|SdcQuerySet} ids
+   */
+  setIds(ids) {
+    if( ids instanceof SdcQuerySet) {
+      this.valuesList = structuredClone(ids.valuesList);
+      this.valuesList.forEach(value => value._setQuerySet(this, true));
+    } else if (ids instanceof SdcModel) {
+      this.valuesList = [structuredClone(ids)];
+      this.valuesList.forEach(value => value._setQuerySet(this, true));
+    } else if (Number.isInteger(ids)) {
+      const newModel = this.new();
+      newModel.id = ids;
+    } else {
+      this.valuesList = this.valuesList.filter(item => ids.includes(item.id));
+      const valueIds = this.getIds();
+      ids.filter(x => !valueIds.includes(x)).forEach((id) => {
+        this.valuesList.push(new (getModel(this.modelName)({id})));
+      });
+    }
+    return this.valuesList;
+  }
+
+  getIds() {
+    return this.valuesList.map(x => x.id);
+  }
 
   /**
    * Number of model instances currently present in the queryset cache.
@@ -119,38 +147,22 @@ export class SdcQuerySet {
    * @returns {number}
    */
   get length() {
-    return this.values_list.length;
+    return this.valuesList.length;
   }
 
   /**
    * Resolve a model instance by id, loading the queryset first if needed.
    *
    * @param {*} id
-   * @returns {Promise<SdcModel|null>}
+   * @returns {SdcModel|null}
    */
-  async byId(id) {
-    if (!this.loaded) {
-      await this.load();
-    }
+  byId(id) {
     if (id !== null) {
       const normalizedId = normalizePk(id);
-      return this.values_list.find((elm) => elm.id === normalizedId) ?? null;
+      return this.valuesList.find((elm) => elm.id === normalizedId) ?? null;
     }
 
     return null;
-  }
-
-  /**
-   * Resolve a model instance by pk from the current in-memory queryset only.
-   *
-   * This is intentionally synchronous and is used by websocket response parsing.
-   *
-   * @param {*} pk
-   * @returns {SdcModel|null}
-   */
-  byPk(pk) {
-    const normalizedPk = normalizePk(pk);
-    return this.values_list.find((elm) => elm.id === normalizedPk) ?? null;
   }
 
   /**
@@ -159,7 +171,12 @@ export class SdcQuerySet {
    * @param {object} modelQuery
    * @returns {SdcQuerySet}
    */
-  filter(modelQuery) {
+  setFilter(modelQuery) {
+    this.modelQuery = modelQuery;
+    return this;
+  }
+
+  addFilter(modelQuery) {
     this.modelQuery = Object.assign({}, this.modelQuery, modelQuery);
     return this;
   }
@@ -170,9 +187,9 @@ export class SdcQuerySet {
   new() {
     const newModel = new (getModel(this.modelName))();
     newModel._setQuerySet(this, false);
+    this.valuesList.push(newModel);
     return newModel;
   }
-
 
   /**
    * Load model instances matching the current query into the queryset cache.
@@ -181,10 +198,35 @@ export class SdcQuerySet {
    * @returns {Promise<SdcQuerySet>}
    */
   async load(modelQuery = null) {
+    if (this.loaded) {
+      return this;
+    }
     this.modelQuery = modelQuery ?? this.modelQuery;
-    const result = await this._sendLoad();
-    this.values_list = result.map((x) => new (getModel(this.modelName)(x)));
-    this.values_list.forEach((x) => x._setQuerySet(this, true));
+    return this._sendLoad();
+  }
+
+  /**
+   * Load model instances matching the current query into the queryset cache.
+   *
+   * @param {?object} modelQuery
+   * @returns {Promise<SdcQuerySet>}
+   */
+  async update(modelQuery = null) {
+    if (!this.loaded) {
+      return this.load(modelQuery);
+    }
+    this.modelQuery = modelQuery ?? this.modelQuery;
+    const results = await this._sendLoad();
+    for (const x of results) {
+      const newModel = new (getModel(this.modelName)(x));
+      const currentModel = this.byId(newModel.id);
+      if (currentModel) {
+        currentModel.setValues(newModel);
+      } else {
+        this.valuesList.push(newModel);
+        newModel._setQuerySet(this, true);
+      }
+    }
     return this;
   }
 
@@ -209,11 +251,10 @@ export class SdcQuerySet {
           }),
         );
 
-        this.open_request[id] = [resolve, reject];
+        this.openRequest[id] = [resolve, reject];
       });
     });
   }
-
 
   /**
    * Render the list-view endpoint for the current model.
@@ -221,20 +262,18 @@ export class SdcQuerySet {
    * @param {object} options
    * @returns {*}
    */
-  _sendListView(
-    {
-      model_query = {},
-      cbResolve = null,
-      cbReject = null,
-      templateContext = {},
-    }
-  ) {
+  _sendListView({
+                  modelQuery = {},
+                  cbResolve = null,
+                  cbReject = null,
+                  templateContext = {},
+                }) {
     return this.view({
-      model_query,
+      modelQuery,
       cbResolve,
       cbReject,
       templateContext,
-      event_type: "list_view",
+      eventType: "list_view",
     });
   }
 
@@ -246,33 +285,33 @@ export class SdcQuerySet {
    */
   view({
          viewName = "html_list_template",
-         model_query = {},
+         modelQuery = {},
          cbResolve = null,
          cbReject = null,
          templateContext = {},
-         event_type = "named_view",
+         eventType = "named_view",
        }) {
-    let $div_list = $('<div class="container-fluid">');
+    let $divList = $('<div class="container-fluid">');
     this.isConnected().then(() => {
       const id = uuidv4();
       this.socket.send(
         JSON.stringify({
           event: "model",
-          event_type,
+          event_type: eventType,
           event_id: id,
           args: {
             view_name: viewName,
             model_name: this.modelName,
-            model_query,
+            model_query: modelQuery,
             template_context: templateContext,
           },
         }),
       );
 
-      this.open_request[id] = [
+      this.openRequest[id] = [
         (data) => {
-          $div_list.append(data.html);
-          app.refresh($div_list);
+          $divList.append(data.html);
+          app.refresh($divList);
           cbResolve && cbResolve(data);
         },
         (res) => {
@@ -281,7 +320,7 @@ export class SdcQuerySet {
       ];
     });
 
-    return $div_list;
+    return $divList;
   }
 
   /**
@@ -292,17 +331,16 @@ export class SdcQuerySet {
    */
   _sendDetailView({
                     pk = null,
-                    cb_resolve = null,
-                    cb_reject = null,
-                    template_context = {},
-                  }
-  ) {
+                    cbResolve = null,
+                    cbReject = null,
+                    templateContext = {},
+                  }) {
     pk = normalizePk(pk);
-    let $div_list = $('<div class="container-fluid">');
+    let $divList = $('<div class="container-fluid">');
 
     this.isConnected().then(() => {
       if (pk === -1) {
-        pk = this.values_list[0].pk;
+        pk = this.valuesList[0].pk;
       }
       const id = uuidv4();
       this.socket.send(
@@ -314,24 +352,24 @@ export class SdcQuerySet {
             model_name: this.modelName,
             model_query: this.modelQuery,
             pk,
-            template_context,
+            template_context: templateContext,
           },
         }),
       );
 
-      this.open_request[id] = [
+      this.openRequest[id] = [
         (data) => {
-          $div_list.append(data.html);
-          app.refresh($div_list);
-          cb_resolve && cb_resolve(data);
+          $divList.append(data.html);
+          app.refresh($divList);
+          cbResolve && cbResolve(data);
         },
         (res) => {
-          cb_reject && cb_reject(res);
+          cbReject && cbReject(res);
         },
       ];
     });
 
-    return $div_list;
+    return $divList;
   }
 
   /**
@@ -340,14 +378,14 @@ export class SdcQuerySet {
    *
    * @param {object} options
    */
-  getForm({modelObj, event_type, formName, $div_form, cb_resolve, cb_reject, formId}) {
+  getForm({modelObj, eventType, formName, $divForm, cbResolve, cbReject, formId}) {
     const id = uuidv4();
     const pk = modelObj.id ?? -1;
     this.isConnected().then(() => {
       this.socket.send(
         JSON.stringify({
           event: "model",
-          event_type,
+          event_type: eventType,
           event_id: id,
           args: {
             model_name: this.modelName,
@@ -360,10 +398,10 @@ export class SdcQuerySet {
 
     const className = pk === null || pk === -1 ? "create" : "edit";
 
-    this.open_request[id] = [
+    this.openRequest[id] = [
       (data) => {
-        $div_form.append(data.html);
-        let $form = $div_form
+        $divForm.append(data.html);
+        let $form = $divForm
           .closest("form")
           .addClass(
             `sdc-model-${className}-form sdc-model-form ${formId}`,
@@ -375,11 +413,11 @@ export class SdcQuerySet {
           $form.attr("sdc_submit", "submitModelFormDistributor");
         }
 
-        app.refresh($div_form).then(r => null);
-        cb_resolve && cb_resolve(data);
+        app.refresh($divForm).then(() => null);
+        cbResolve && cbResolve(data);
       },
       (res) => {
-        cb_reject && cb_reject(res);
+        cbReject && cbReject(res);
       },
     ];
   }
@@ -396,28 +434,119 @@ export class SdcQuerySet {
       throw new Error(`model query returns ${this.length} but only 1 expected.`);
     }
 
-    return this.values_list[0];
+    return this.valuesList[0];
   }
 
-  detailView({pk, cb_resolve = null, cb_reject = null, template_context = {}}) {
-    return this._sendDetailView(
-      {
-
-        pk,
-        cb_resolve,
-        cb_reject,
-        template_context,
-      });
+  detailView({pk, cbResolve = null, cbReject = null, templateContext = {}}) {
+    return this._sendDetailView({
+      pk,
+      cbResolve,
+      cbReject,
+      templateContext,
+    });
   }
 
-  listView({model_query = {}, cb_resolve = null, cb_reject = null, template_context = {}}) {
-    return this._sendListView(
-      {
-        model_query: Object.assign({}, this.modelQuery, model_query),
-        cb_resolve,
-        cb_reject,
-        template_context,
+  listView({modelQuery = {}, cbResolve = null, cbReject = null, templateContext = {}}) {
+    return this._sendListView({
+      modelQuery: Object.assign({}, this.modelQuery, modelQuery),
+      cbResolve,
+      cbReject,
+      templateContext,
+    });
+  }
+
+  save({pk = null, formName = "edit_form", data = null}) {
+    const normPk = normalizePk(pk);
+    return this.isConnected().then(() => {
+      let elemList;
+      if (normPk > -1) {
+        elemList = [this.byId(normPk)];
+      } else {
+        elemList = this.valuesList;
+      }
+      let pList = [];
+      data ??= elem.serialize();
+      data.pk = pk;
+      elemList.forEach((elem) => {
+        const id = uuidv4();
+        pList.push(
+          new Promise((resolve, reject) => {
+            this._readFiles(elem).then((files) => {
+              this.socket.send(
+                JSON.stringify({
+                  event: "model",
+                  event_type: "save",
+                  event_id: id,
+                  args: {
+                    form_name: formName,
+                    model_name: this.modelName,
+                    model_query: this.modelQuery,
+                    data,
+                    pk,
+                    files: files,
+                  },
+                }),
+              );
+
+              this.openRequest[id] = [
+                (res) => {
+                  let data =
+                    typeof res.data.instance === "string"
+                      ? JSON.parse(res.data.instance)
+                      : res.data.instance;
+                  res.data.instance = this._parseServerRes(data);
+                  resolve(res);
+                },
+                reject,
+              ];
+            });
+          }),
+        );
       });
+
+      return Promise.all(pList);
+    });
+  }
+
+  /**
+   *
+   * @param elem {SdcModel}
+   * @param data {object}
+   * @returns {Promise<unknown>}
+   */
+  create({elem, data = null}) {
+    const id = uuidv4();
+    return this.isConnected().then(() => {
+      return new Promise((resolve, reject) => {
+        this._readFiles(elem).then((files) => {
+          this.socket.send(
+            JSON.stringify({
+              event: "model",
+              event_type: "create",
+              event_id: id,
+              args: {
+                model_name: this.modelName,
+                model_query: this.modelQuery,
+                data: data ?? elem.serialize(),
+                files: files,
+              },
+            }),
+          );
+
+          this.openRequest[id] = [
+            (res) => {
+              let data =
+                typeof res.data.instance === "string"
+                  ? JSON.parse(res.data.instance)
+                  : res.data.instance;
+              res.data.instance = this._parseServerRes(data)[0];
+              resolve(res);
+            },
+            reject,
+          ];
+        });
+      });
+    });
   }
 
   /**
@@ -431,29 +560,29 @@ export class SdcQuerySet {
    */
   isConnected() {
     return new Promise((resolve, reject) => {
-      if (this._is_connected) {
+      if (this._isConnected) {
         resolve();
       } else if (
-        !this._is_conneting_process ||
-        !this.open_request[CONNECTING_REQUEST_ID]
+        !this._isConnectingProcess ||
+        !this.openRequest[CONNECTING_REQUEST_ID]
       ) {
-        this._is_conneting_process = true;
-        this.open_request[CONNECTING_REQUEST_ID] = [() => {
+        this._isConnectingProcess = true;
+        this.openRequest[CONNECTING_REQUEST_ID] = [() => {
         }, () => {
         }];
         this._connectToServer().then(() => {
           resolve(this._checkConnection());
         });
       } else {
-        const [resolve_origin, reject_origin] =
-          this.open_request[CONNECTING_REQUEST_ID];
-        this.open_request[CONNECTING_REQUEST_ID] = [
+        const [resolveOrigin, rejectOrigin] =
+          this.openRequest[CONNECTING_REQUEST_ID];
+        this.openRequest[CONNECTING_REQUEST_ID] = [
           () => {
-            resolve_origin();
+            resolveOrigin();
             resolve();
           },
           () => {
-            reject_origin();
+            rejectOrigin();
             reject();
           },
         ];
@@ -466,7 +595,7 @@ export class SdcQuerySet {
    */
   close() {
     if (this.socket) {
-      this._auto_reconnect = false;
+      this._autoReconnect = false;
       this.socket.onclose = () => {
       };
       this.socket.close();
@@ -475,80 +604,58 @@ export class SdcQuerySet {
   }
 
   /**
-   * Drop the locally cached model instances.
-   *
-   * @returns {SdcQuerySet}
-   */
-  clean() {
-    this.values_list = [];
-    return this;
-  }
-
-
-  /**
    * Upload attached `File` values in fixed-size chunks before save/create calls.
    *
-   * @param {object} elem
+   * @param {SdcModel} elem
    * @returns {Promise<object>}
    */
   _readFiles(elem) {
-    let to_solve = [];
+    let toSolve = [];
     let files = {};
-    for (const [key, value] of Object.entries(elem)) {
+    Object.entries(elem).forEach(([key, value]) => {
       if (value instanceof File) {
-        to_solve.push(
-          new Promise((resolve, reject) => {
-            ((key, value) => {
-              let reader = new FileReader();
-              reader.onload = (e) => {
-                const id = uuidv4();
-                this.open_request[id] = [resolve, reject];
+        toSolve.push(
+          new Promise(async (resolve, reject) => {
+            const id = uuidv4();
+            this.openRequest[id] = [resolve, reject];
 
-                let result = e.target.result;
-                let number_of_chunks = parseInt(
-                  Math.ceil(result.length / MAX_FILE_UPLOAD),
-                );
-                files[key] = {
-                  id: id,
-                  file_name: value.name,
-                  field_name: key,
-                  content_length: value.size,
-                };
-                for (let i = 0; i < number_of_chunks; ++i) {
-                  this.socket.send(
-                    JSON.stringify({
-                      event: "model",
-                      event_type: "upload",
-                      event_id: id,
-                      args: {
-                        chunk: result.slice(
-                          MAX_FILE_UPLOAD * i,
-                          MAX_FILE_UPLOAD * (i + 1),
-                        ),
-                        idx: i,
-                        number_of_chunks: number_of_chunks,
-                        file_name: value.name,
-                        field_name: key,
-                        content_length: value.size,
-                        content_type: value.type,
-                        model_name: this.modelName,
-                        model_query: this.modelQuery,
-                      },
-                    }),
-                  );
-                }
-              };
-              reader.onerror = () => {
-                reject();
-              };
-              reader.readAsBinaryString(value);
-            })(key, value);
+            let result = await value.arrayBuffer();
+            let numberOfChunks = Math.ceil(result.length / MAX_FILE_UPLOAD);
+            files[key] = {
+              id: id,
+              file_name: value.name,
+              field_name: key,
+              content_length: value.size,
+            };
+            for (let i = 0; i < numberOfChunks; ++i) {
+              this.socket.send(
+                JSON.stringify({
+                  event: "model",
+                  event_type: "upload",
+                  event_id: id,
+                  args: {
+                    chunk: result.slice(
+                      MAX_FILE_UPLOAD * i,
+                      MAX_FILE_UPLOAD * (i + 1),
+                    ),
+                    idx: i,
+                    number_of_chunks: numberOfChunks,
+                    file_name: value.name,
+                    field_name: key,
+                    content_length: value.size,
+                    content_type: value.type,
+                    model_name: this.modelName,
+                    model_query: this.modelQuery,
+                  },
+                }),
+              );
+            }
           }),
         );
       }
-    }
+    });
 
-    return Promise.all(to_solve).then(() => {
+    return Promise.all(toSolve).then(() => {
       return files;
     });
   }
@@ -559,11 +666,11 @@ export class SdcQuerySet {
    *
    * @param {MessageEvent} e
    */
-  _onMessage(e) {
+  async _onMessage(e) {
     let data = JSON.parse(e.data);
     if (data.is_error) {
-      if (this.open_request.hasOwnProperty(data.event_id)) {
-        this.open_request[data.event_id][1](data);
+      if (this.openRequest.hasOwnProperty(data.event_id)) {
+        this.openRequest[data.event_id][1](data);
         this._closeOpenRequest(data.event_id);
       }
       if (data.msg || data.header) {
@@ -571,9 +678,9 @@ export class SdcQuerySet {
       }
 
       if (data.type === "connect") {
-        this.open_request[CONNECTING_REQUEST_ID][1](data);
+        this.openRequest[CONNECTING_REQUEST_ID][1](data);
         this._closeOpenRequest(CONNECTING_REQUEST_ID);
-        this._auto_reconnect = false;
+        this._autoReconnect = false;
         this.socket.close();
       }
     } else {
@@ -582,24 +689,24 @@ export class SdcQuerySet {
       }
 
       if (data.type === "connect") {
-        this._is_connected = true;
-        this._is_conneting_process = false;
-        this.open_request[CONNECTING_REQUEST_ID][0](data);
+        this._isConnected = true;
+        this._isConnectingProcess = false;
+        this.openRequest[CONNECTING_REQUEST_ID][0](data);
         this._closeOpenRequest(CONNECTING_REQUEST_ID);
       } else if (["load", "named_view", "detail_view"].includes(data.type)) {
-        const json_res = JSON.parse(data.args.data);
-        this.values_list = [];
-        data.args.data = this._parseServerRes(json_res);
+        const jsonRes = JSON.parse(data.args.data);
+        this.valuesList = [];
+        data.args.data = await this._parseServerRes(jsonRes);
       } else if (data.type === "on_update" || data.type === "on_create") {
-        const json_res = JSON.parse(data.args.data);
+        const jsonRes = JSON.parse(data.args.data);
 
-        let obj = this._parseServerRes(json_res);
+        let obj = await this._parseServerRes(jsonRes);
         let cb;
 
         if (data.type === "on_create") {
-          cb = this.on_create;
+          cb = this.onCreate;
         } else {
-          cb = this.on_update;
+          cb = this.onUpdate;
         }
 
         cb(obj);
@@ -611,8 +718,8 @@ export class SdcQuerySet {
         data.data.instance = JSON.parse(data.data.instance);
       }
 
-      if (this.open_request.hasOwnProperty(data.event_id)) {
-        this.open_request[data.event_id][0](data);
+      if (this.openRequest.hasOwnProperty(data.event_id)) {
+        this.openRequest[data.event_id][0](data);
         this._closeOpenRequest(data.event_id);
       }
     }
@@ -625,7 +732,7 @@ export class SdcQuerySet {
    */
   noOpenRequests() {
     return new Promise((resolve) => {
-      if (Object.keys(this.open_request).length === 0) {
+      if (Object.keys(this.openRequest).length === 0) {
         return resolve();
       }
 
@@ -637,11 +744,11 @@ export class SdcQuerySet {
    * Remove a completed request and wake any `noOpenRequests()` waiters when the
    * request map becomes empty.
    *
-   * @param {string} event_id
+   * @param {string} eventId
    */
-  _closeOpenRequest(event_id) {
-    delete this.open_request[event_id];
-    if (Object.keys(this.open_request).length === 0) {
+  _closeOpenRequest(eventId) {
+    delete this.openRequest[eventId];
+    if (Object.keys(this.openRequest).length === 0) {
       this._onNoOpenRequests.forEach((x) => x());
       this._onNoOpenRequests = [];
     }
@@ -672,14 +779,14 @@ export class SdcQuerySet {
         console.error(
           `SDC Model (${this.modelName}, ${this.modelId}) Socket closed unexpectedly`,
         );
-        this._is_connected = false;
-        for (const [_key, value] of Object.entries(this.open_request)) {
+        this._isConnected = false;
+        for (const [_key, value] of Object.entries(this.openRequest)) {
           value[1](e);
         }
-        this.open_request = {};
+        this.openRequest = {};
 
         setTimeout(() => {
-          if (this._auto_reconnect) {
+          if (this._autoReconnect) {
             this._connectToServer().then(() => {
             });
           }
@@ -688,7 +795,7 @@ export class SdcQuerySet {
 
       this.socket.onerror = (err) => {
         console.error(`Model Socket encountered error: ${err} Closing socket`);
-        if (this._is_connected) {
+        if (this._isConnected) {
           try {
             this.socket.close();
           } catch (e) {
@@ -722,44 +829,37 @@ export class SdcQuerySet {
         }),
       );
 
-      this.open_request[id] = [resolve, reject];
+      this.openRequest[id] = [resolve, reject];
     });
   }
 
   /**
    * Convert the backend model payload into locally tracked model objects.
    *
-   * @param {Array<object>} res
-   * @returns {Array<SdcModel>}
+   * @param {Array<object>} results
    */
-  _parseServerRes(res) {
-    let updated = [];
-    for (let json_data of res) {
-      const pk = json_data.pk;
-      const obj = this.byPk(pk);
-      for (const [k, v] of Object.entries(json_data.fields)) {
-        if (v && typeof v === "object" && v["__is_sdc_model__"]) {
-          obj[k] = new SubModel(v["pk"], v["model"]);
-        } else {
-          obj[k] = v;
-        }
+  _parseServerRes(results) {
+    const newModels = []
+    for (const x of results) {
+      const newModel = new (getModel(this.modelName))(x);
+      const currentModel = this.byId(newModel.id);
+      if (currentModel) {
+        currentModel.setValues(newModel);
+        newModels.push(currentModel);
+      } else {
+        this.valuesList.push(newModel);
+        newModel._setQuerySet(this, true);
+        newModels.push(newModel);
       }
-
-      updated.push(obj);
     }
 
-    if (this.values_list.length === 1) {
-      this.values = this.values_list.at(-1);
-    } else {
-      this.values = {};
-    }
-
-    return updated;
+    return newModels;
   }
-
 }
 
 export default class SdcModel {
+  static fields = {};
+
   /**
    * Base model wrapper used by SDC model registrations.
    *
@@ -770,6 +870,10 @@ export default class SdcModel {
     this._isloaded = false;
     this.formId = uuidv4();
     this.modelName = modelName;
+  }
+
+  setValues(data = {}) {
+    throw new Error("setValues() must be implemented by subclass");
   }
 
   /**
@@ -783,8 +887,12 @@ export default class SdcModel {
     this._isloaded = isLoaded;
   }
 
-  save() {
+  save({formName = "edit_form", data = null}) {
+    return this._querySet.save({pk: this.id, formName, data});
+  }
 
+  create({data = null}) {
+    return this._querySet.create({elem: this, data});
   }
 
   delete() {
@@ -795,14 +903,45 @@ export default class SdcModel {
     return this._id;
   }
 
+  set pk(data) {
+    this._id = data;
+  }
+
+  get pk() {
+    return this._id;
+  }
+
   /**
    * Request the server-rendered detail view for this model instance.
    *
    * @param {object} options
    * @returns {*}
    */
-  detailView({cb_resolve = null, cb_reject = null, template_context = {}}) {
-    return this._querySet.detailView({pk: this.id, cb_resolve, cb_reject, template_context});
+  detailView({cbResolve = null, cbReject = null, templateContext = {}}) {
+    return this._querySet.detailView({pk: this.id, cbResolve, cbReject, templateContext});
+  }
+
+  serialize() {
+    return Object.entries(this.constructor.fields).reduce((acc, [key, val]) => {
+      const value = this[key];
+      if (value instanceof SdcQuerySet) {
+        if (val.many_to_many || val.one_to_many) {
+          acc[key] = value.getIds();
+        } else {
+          const allIds = value.getIds();
+          if (allIds.length > 0) {
+            acc[key] = allIds[0];
+          } else {
+            acc[key] = null;
+          }
+
+        }
+      } else {
+        acc[key] = value;
+      }
+
+      return acc
+    }, {});
   }
 
   /**
@@ -838,25 +977,27 @@ export default class SdcModel {
     $forms = this._resolveForms($forms);
 
     const self = this;
+    const fields = this.constructor.fields;
     $forms.each(function () {
       const pk = normalizePk($(this).data("model_pk"));
       if (self.id !== pk) {
         return;
       }
 
-      for (let form_item of this.elements) {
-        let name = form_item.name;
-        if (name && name !== "") {
-          if (form_item.type === "checkbox") {
-            form_item.checked = self[name];
-          } else if (form_item.type === "file") {
+      for (let formItem of this.elements) {
+        let name = formItem.name;
+
+        if (name && name !== "" && !!fields[name]) {
+          if (formItem.type === "checkbox") {
+            formItem.checked = self[name];
+          } else if (formItem.type === "file") {
             if (self[name] instanceof File) {
               let container = new DataTransfer();
               container.items.add(self[name]);
-              form_item.files = container;
+              formItem.files = container;
             }
           } else {
-            $(form_item).val(self[name]);
+            $(formItem).val(self[name]);
           }
         }
       }
@@ -875,29 +1016,40 @@ export default class SdcModel {
     $forms = this._resolveForms($forms);
 
     const self = this;
+    const fields = this.constructor.fields;
+    const returnValue = {}
+    function setValueInForm(name, value) {
+      if (!!fields[name]) {
+        self[name] = value;
+      }
+      returnValue[name] = value;
+    }
+
     $forms.each(function () {
       const pk = normalizePk($(this).data("model_pk"));
       if (self.id !== pk && (self.id !== null || pk !== -1)) {
         return;
       }
 
-      for (let form_item of this.elements) {
-        let name = form_item.name;
+      for (let formItem of this.elements) {
+        let name = formItem.name;
         if (name && name !== "") {
-          if (form_item.type === "hidden") {
-            self[name] = parse_hidden_inputs($(form_item).val());
-          } else if (form_item.type === "checkbox") {
-            self[name] = form_item.checked;
-          } else if (form_item.type === "file") {
-            self[name] = form_item.files[0];
+          if (formItem.type === "hidden") {
+            setValueInForm(name, parseHiddenInputs($(formItem).val()));
+          } else if (formItem.type === "checkbox") {
+            setValueInForm(name, formItem.checked);
+          } else if (formItem.type === "file") {
+            setValueInForm(name, formItem.files[0]);
           } else {
-            self[name] = $(form_item).val();
+            setValueInForm(name, $(formItem).val());
           }
         }
       }
 
       return self;
     });
+
+    return returnValue;
   }
 
   /**
@@ -906,11 +1058,11 @@ export default class SdcModel {
    * @param {object} options
    * @returns {*}
    */
-  form({cb_resolve = null, cb_reject = null}) {
+  form({cbResolve = null, cbReject = null}) {
     if (this.id === null || this.id === -1) {
-      return this._createForm({cb_reject, cb_resolve});
+      return this._createForm({cbReject, cbResolve});
     }
-    return this._editForm({cb_reject, cb_resolve});
+    return this._editForm({cbReject, cbResolve});
   }
 
   /**
@@ -919,21 +1071,19 @@ export default class SdcModel {
    * @param {object} options
    * @returns {*}
    */
-  _createForm({cb_resolve = null, cb_reject = null}) {
-    let $div_form = $("<div>");
-    this._querySet.getForm(
-      {
-        modelObj: this,
-        event_type: "create_form",
-        formName: null,
-        $div_form,
-        cb_resolve,
-        cb_reject,
-        formId: this.formId,
-      }
-    );
+  _createForm({cbResolve = null, cbReject = null}) {
+    let $divForm = $("<div>");
+    this._querySet.getForm({
+      modelObj: this,
+      eventType: "create_form",
+      formName: null,
+      $divForm,
+      cbResolve,
+      cbReject,
+      formId: this.formId,
+    });
 
-    return $div_form;
+    return $divForm;
   }
 
   /**
@@ -942,21 +1092,20 @@ export default class SdcModel {
    * @param {object} options
    * @returns {*}
    */
-  _editForm({cb_resolve = null, cb_reject = null}) {
-    let $div_form = $("<div>");
+  _editForm({cbResolve = null, cbReject = null}) {
+    let $divForm = $("<div>");
 
-    this._querySet.getForm(
-      {
-        modelObj: this,
-        event_type: "edit_form",
-        formName: null,
-        $div_form,
-        cb_resolve,
-        cb_reject,
-        formId: this.formId,
-      });
+    this._querySet.getForm({
+      modelObj: this,
+      eventType: "edit_form",
+      formName: null,
+      $divForm,
+      cbResolve,
+      cbReject,
+      formId: this.formId,
+    });
 
-    return $div_form;
+    return $divForm;
   }
 
   /**
@@ -965,25 +1114,21 @@ export default class SdcModel {
    * @param {object} options
    * @returns {*}
    */
-  namedForm({formName, cb_resolve = null, cb_reject = null}) {
-    let $div_form = $('<div  class="container-fluid">');
+  namedForm({formName, cbResolve = null, cbReject = null}) {
+    let $divForm = $('<div  class="container-fluid">');
 
-    this._querySet.getForm(
-      {
-        modelObj: this,
-        event_type: "named_form",
-        formName,
-        $div_form,
-        cb_resolve,
-        cb_reject,
-        formId: this.formId,
-      }
-    );
+    this._querySet.getForm({
+      modelObj: this,
+      eventType: "named_form",
+      formName,
+      $divForm,
+      cbResolve,
+      cbReject,
+      formId: this.formId,
+    });
 
-
-    return $div_form;
+    return $divForm;
   }
-
 
   /**
    * Validate a field value using the supplied field config.
@@ -1032,20 +1177,20 @@ export default class SdcModel {
 
       case "DateField":
       case "DateTimeField":
-        return Date.parse(value)
+        return Date.parse(value);
 
       case "URLField":
         return new URL(value);
-      case "FileField":
-        // allow null if not required
-        if (value == null) return null;
 
-        // case 1: string (already uploaded file / API response)
-        if (typeof value === "string") {
-          return null; // assume valid
+      case "FileField":
+        if (value == null) {
+          return null;
         }
 
-        // case 2: browser File object
+        if (typeof value === "string") {
+          return null;
+        }
+
         if (typeof File !== "undefined" && value instanceof File) {
           if (config.max_size && value.size > config.max_size) {
             return `File too large (max ${config.max_size} bytes)`;
@@ -1057,6 +1202,7 @@ export default class SdcModel {
 
           return null;
         }
+        break;
 
       case "JSONField":
         if (typeof value === "object") {
@@ -1068,7 +1214,6 @@ export default class SdcModel {
         break;
 
       default:
-        // fallback: no strict validation
         break;
     }
 
@@ -1087,50 +1232,44 @@ function validateField(value, config) {
   const {
     type,
     required,
-    max_length,
-    is_relation,
-    many_to_many,
-    one_to_many,
-    many_to_one,
-    one_to_one
+    max_length: maxLength,
+    is_relation: isRelation,
+    many_to_many: manyToMany,
+    one_to_many: oneToMany,
+    many_to_one: manyToOne,
+    one_to_one: oneToOne,
+    related_model: relatedModel,
   } = config;
 
-  // REQUIRED
+  void isRelation;
+
   if (required) {
     if (value === null || value === undefined || value === "") {
       return "This field is required";
     }
   }
 
-  // skip further checks if empty
   if (value === null || value === undefined) {
     return null;
   }
 
-  // RELATIONS
-  if (many_to_many || one_to_many) {
-    if (!Array.isArray(value)) {
-      return "Must be an array";
+  if (manyToMany || oneToMany || manyToOne || oneToOne) {
+    if (!value instanceof SdcQuerySet || value.modelName !== relatedModel) {
+      if (typeof value !== "object" && typeof value !== "number") {
+        return "Must be object or ID";
+      }
+      return null;
     }
-    return null;
   }
 
-  if (many_to_one || one_to_one) {
-    if (typeof value !== "object" && typeof value !== "number") {
-      return "Must be object or ID";
-    }
-    return null;
-  }
-
-  // TYPE CHECKS
   switch (type) {
     case "CharField":
     case "TextField":
       if (typeof value !== "string") {
         return "Must be a string";
       }
-      if (max_length && value.length > max_length) {
-        return `Max length is ${max_length}`;
+      if (maxLength && value.length > maxLength) {
+        return `Max length is ${maxLength}`;
       }
       break;
 
@@ -1189,7 +1328,6 @@ function validateField(value, config) {
       break;
 
     default:
-      // fallback: no strict validation
       break;
   }
 
