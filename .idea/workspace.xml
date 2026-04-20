@@ -5,7 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4b4ede81-fe43-4a68-9186-e15152e2d80c" name="Changes" comment="v 0.58.0 Models as class objects">
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.github/workflows/node.js.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/node.js.yml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -231,7 +231,7 @@
       <workItem from="1745266749102" duration="42527000" />
       <workItem from="1745433489565" duration="22162000" />
       <workItem from="1746775623778" duration="14038000" />
-      <workItem from="1776656121875" duration="3031000" />
+      <workItem from="1776656121875" duration="3093000" />
     </task>
     <task id="LOCAL-00001" summary="v 0.4.11 add gulp tasks to client bib">
       <option name="closed" value="true" />
@@ -297,7 +297,23 @@
       <option name="project" value="LOCAL" />
       <updated>1776668775427</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="v 0.58.0 Models as class objects">
+      <option name="closed" value="true" />
+      <created>1776668816174</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1776668816174</updated>
+    </task>
+    <task id="LOCAL-00010" summary="v 0.58.0 Models as class objects">
+      <option name="closed" value="true" />
+      <created>1776668837064</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1776668837064</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
