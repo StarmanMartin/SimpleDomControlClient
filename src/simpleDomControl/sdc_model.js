@@ -1,4 +1,4 @@
-import {uuidv4} from "./sdc_utils.js";
+import {getValueFromField, setValueInField, uuidv4} from "./sdc_utils.js";
 import {getModel} from "./sdc_socket.js"
 import {app} from "./sdc_main.js";
 import {trigger} from "./sdc_events.js";
@@ -6,36 +6,59 @@ import {trigger} from "./sdc_events.js";
 const MAX_FILE_UPLOAD = 25000;
 const CONNECTING_REQUEST_ID = "_connecting_process";
 
-/**
- * Parse hidden input values back into the closest JavaScript primitive.
- *
- * Hidden inputs are often used to preserve values that were originally booleans,
- * numbers or quoted strings. This keeps form-to-model sync from turning
- * everything into plain strings.
- *
- * @param {string} value
- * @returns {*}
- */
-function parseHiddenInputs(value) {
-  let isFloatReg = /^-?\d+\.?\d+$/;
-  let isIntReg = /^-?\d+$/;
-  let isBoolReg = /^(true|false)$/;
-  let isStringReg = /^(['][^']*['])|(["][^"]*["])$/;
-
-  if (value.toLowerCase().match(isBoolReg)) {
-    return value.toLowerCase() === "true";
-  } else if (value === "undefined") {
-    return undefined;
-  } else if (value.toLowerCase() === "none") {
-    return null;
-  } else if (value.match(isIntReg)) {
-    return parseInt(value, 10);
-  } else if (value.match(isFloatReg)) {
-    return parseFloat(value);
-  } else if (value.match(isStringReg)) {
-    return value.substring(1, value.length - 1);
+class SdcModelError extends Error {
+  constructor(props) {
+    if (typeof props === 'string') {
+      props = {
+        msg: props,
+        is_error: true,
+        header: 'Error'
+      }
+    }
+    super(props.msg)
+    this.msg = props.msg;
+    this.header = props.header;
+    this.is_error = props.is_error;
   }
-  return value;
+}
+
+class FileLoaded {
+  constructor({name, url}) {
+    this.name = name;
+    this.url = url;
+    this.content = null;
+  }
+
+  async load(force = false) {
+    if (force || !this.content) {
+      this.content = await new Promise((resolve, reject) => {
+        $.get(this.url).then(resolve).catch(
+          () => {
+            resolve('');
+          }
+        );
+      });
+    }
+
+    return this.content;
+  }
+
+  async text() {
+    return this.load();
+  }
+
+  static isValid(value) {
+    return (
+      value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      !(value instanceof File) &&
+      typeof value.url === "string" &&
+      typeof value.name === "string"
+    );
+  }
+
+
 }
 
 /**
@@ -67,7 +90,6 @@ export class SdcQuerySet {
     this.modelName = modelName;
     this.modelQuery = modelQuery ?? {};
     this._onNoOpenRequests = [];
-    this.valuesList = [];
     this._isConnected = false;
     this._isConnectingProcess = false;
     this._autoReconnect = true;
@@ -82,7 +104,7 @@ export class SdcQuerySet {
 
     return new Proxy(this, {
       get(target, prop) {
-        if (!isNaN(prop)) {
+        if (typeof prop !== "symbol" && !isNaN(prop)) {
           return target.valuesList[prop];
         }
         return target[prop];
@@ -112,26 +134,59 @@ export class SdcQuerySet {
     };
   }
 
+  set on_create(handler) {
+    this.onCreate = handler;
+  }
+
+  set on_update(handler) {
+    this.onUpdate = handler;
+  }
+
   /**
    *
    *
-   * @param {Array<integr>|integer|SdcModel|SdcQuerySet} ids
+   * @param {Array<integr|string>|integer|SdcModel|SdcQuerySet|string} ids
    */
   setIds(ids) {
-    if( ids instanceof SdcQuerySet) {
+
+    if (ids === null || Array.isArray(ids) && ids.length === 0) {
+      this.valuesList = [];
+      return this.valuesList;
+    } else if (ids instanceof SdcQuerySet) {
       this.valuesList = structuredClone(ids.valuesList);
       this.valuesList.forEach(value => value._setQuerySet(this, true));
+      return this.valuesList;
     } else if (ids instanceof SdcModel) {
       this.valuesList = [structuredClone(ids)];
       this.valuesList.forEach(value => value._setQuerySet(this, true));
-    } else if (Number.isInteger(ids)) {
+      return this.valuesList;
+    }
+
+    let numList, numId = Number.NaN;
+    if (Number.isInteger(ids)) {
+      numId = ids;
+    } else if (ids instanceof Array) {
+      const tempNumList = ids.map((x) => parseInt(x));
+      if (!tempNumList.some(Number.isNaN)) {
+        numList = tempNumList
+      }
+    } else if (ids instanceof String) {
+      const tempNumList = ids.split(',').map((x) => parseInt(x));
+      if (!tempNumList.some(Number.isNaN)) {
+        numList = tempNumList
+      } else {
+        numId = parseInt(ids);
+      }
+    }
+
+    if (!Number.isNaN(numId)) {
       const newModel = this.new();
-      newModel.id = ids;
-    } else {
-      this.valuesList = this.valuesList.filter(item => ids.includes(item.id));
+      newModel.id = numId;
+    } else if (numList) {
+      this.valuesList = this.valuesList.filter(item => numList.includes(item.id));
       const valueIds = this.getIds();
       ids.filter(x => !valueIds.includes(x)).forEach((id) => {
-        this.valuesList.push(new (getModel(this.modelName)({id})));
+        this.valuesList.push(new (getModel(this.modelName))({id}));
       });
     }
     return this.valuesList;
@@ -182,10 +237,11 @@ export class SdcQuerySet {
   }
 
   /**
+   * @param {?object} values
    * @returns {SdcModel}
    */
-  new() {
-    const newModel = new (getModel(this.modelName))();
+  new(values = {}) {
+    const newModel = new (getModel(this.modelName))(values);
     newModel._setQuerySet(this, false);
     this.valuesList.push(newModel);
     return newModel;
@@ -197,10 +253,8 @@ export class SdcQuerySet {
    * @param {?object} modelQuery
    * @returns {Promise<SdcQuerySet>}
    */
-  async load(modelQuery = null) {
-    if (this.loaded) {
-      return this;
-    }
+  load(modelQuery = null) {
+    this.valuesList = [];
     this.modelQuery = modelQuery ?? this.modelQuery;
     return this._sendLoad();
   }
@@ -209,25 +263,45 @@ export class SdcQuerySet {
    * Load model instances matching the current query into the queryset cache.
    *
    * @param {?object} modelQuery
+   * @param {?SdcModel} item
    * @returns {Promise<SdcQuerySet>}
    */
-  async update(modelQuery = null) {
-    if (!this.loaded) {
-      return this.load(modelQuery);
-    }
+  update({modelQuery = null, item = null}) {
     this.modelQuery = modelQuery ?? this.modelQuery;
-    const results = await this._sendLoad();
-    for (const x of results) {
-      const newModel = new (getModel(this.modelName)(x));
-      const currentModel = this.byId(newModel.id);
-      if (currentModel) {
-        currentModel.setValues(newModel);
-      } else {
-        this.valuesList.push(newModel);
-        newModel._setQuerySet(this, true);
-      }
+    let loadQuery = item ? {pk: item.id} : this.modelQuery;
+    return this._sendLoad(loadQuery);
+  }
+
+  /**
+   *
+   * @param pk {integr}
+   * @param elem {SdcModel}
+   * @returns {Promise<unknown>}
+   */
+  delete({pk = null, elem = null}) {
+    pk = !elem ? pk : elem.id;
+    if (pk === null) {
+      throw new Error("pk or elem must be set");
     }
-    return this;
+    const id = uuidv4();
+    return this.isConnected().then(() => {
+      return new Promise((resolve, reject) => {
+        this.socket.send(
+          JSON.stringify({
+            event: "model",
+            event_type: "delete",
+            event_id: id,
+            args: {
+              model_name: this.modelName,
+              model_query: this.modelQuery,
+              pk,
+            },
+          }),
+        );
+
+        this.openRequest[id] = [resolve, reject];
+      });
+    });
   }
 
   /**
@@ -235,7 +309,7 @@ export class SdcQuerySet {
    *
    * @returns {Promise<*>}
    */
-  _sendLoad() {
+  _sendLoad(loadQuery = null) {
     return this.isConnected().then(() => {
       const id = uuidv4();
       return new Promise((resolve, reject) => {
@@ -246,7 +320,7 @@ export class SdcQuerySet {
             event_id: id,
             args: {
               model_name: this.modelName,
-              model_query: this.modelQuery,
+              model_query: loadQuery ?? this.modelQuery,
             },
           }),
         );
@@ -339,9 +413,6 @@ export class SdcQuerySet {
     let $divList = $('<div class="container-fluid">');
 
     this.isConnected().then(() => {
-      if (pk === -1) {
-        pk = this.valuesList[0].pk;
-      }
       const id = uuidv4();
       this.socket.send(
         JSON.stringify({
@@ -376,7 +447,8 @@ export class SdcQuerySet {
    * Fetch a model form fragment and attach the SDC form metadata expected by
    * the rest of the client.
    *
-   * @param {object} options
+   * @param {string} eventType
+   * @param {SdcModel} modelObj
    */
   getForm({modelObj, eventType, formName, $divForm, cbResolve, cbReject, formId}) {
     const id = uuidv4();
@@ -409,6 +481,7 @@ export class SdcQuerySet {
           .data("model", modelObj)
           .data("model_pk", pk)
           .data("form_name", formName);
+        modelObj.addForm($form);
         if ($form.length > 0 && !$form[0].hasAttribute("sdc_submit")) {
           $form.attr("sdc_submit", "submitModelFormDistributor");
         }
@@ -426,9 +499,14 @@ export class SdcQuerySet {
    * Fetch a single model instance matching the current query.
    *
    * @param {?object} modelQuery
+   * @param {?boolean} doNotLoad true if modelQuery contains id or pk and object does not need to be loaded.
    * @returns {Promise<SdcModel>}
    */
-  async get(modelQuery = null) {
+  async get(modelQuery = null, doNotLoad = false) {
+    if (doNotLoad) {
+      const id = modelQuery?.id ?? modelQuery?.pk;
+      return this.byId(id) ?? this.new(modelQuery || this.modelQuery);
+    }
     await this.load(modelQuery);
     if (this.length !== 1) {
       throw new Error(`model query returns ${this.length} but only 1 expected.`);
@@ -455,23 +533,27 @@ export class SdcQuerySet {
     });
   }
 
-  save({pk = null, formName = "edit_form", data = null}) {
+  save({pk = null, formName = "edit_form", data = null} = {}) {
     const normPk = normalizePk(pk);
     return this.isConnected().then(() => {
       let elemList;
       if (normPk > -1) {
-        elemList = [this.byId(normPk)];
+        const elem = this.byId(normPk);
+        if (!elem) {
+          return Promise.reject(new SdcModelError(`Element not found with ID: ${normPk}`));
+        }
+        elemList = [elem];
       } else {
         elemList = this.valuesList;
       }
       let pList = [];
-      data ??= elem.serialize();
-      data.pk = pk;
       elemList.forEach((elem) => {
         const id = uuidv4();
         pList.push(
           new Promise((resolve, reject) => {
             this._readFiles(elem).then((files) => {
+              const sendData = data ? {...data} : elem.serialize();
+              sendData.pk = elem.id;
               this.socket.send(
                 JSON.stringify({
                   event: "model",
@@ -481,8 +563,8 @@ export class SdcQuerySet {
                     form_name: formName,
                     model_name: this.modelName,
                     model_query: this.modelQuery,
-                    data,
-                    pk,
+                    data: sendData,
+                    pk: sendData.pk,
                     files: files,
                   },
                 }),
@@ -510,12 +592,15 @@ export class SdcQuerySet {
 
   /**
    *
-   * @param elem {SdcModel}
-   * @param data {object}
+   * @param elem {?SdcModel}
+   * @param data {?object}
    * @returns {Promise<unknown>}
    */
-  create({elem, data = null}) {
+  create({elem = null, data = null} = {}) {
     const id = uuidv4();
+    if (!elem) {
+      elem = this.new(data);
+    }
     return this.isConnected().then(() => {
       return new Promise((resolve, reject) => {
         this._readFiles(elem).then((files) => {
@@ -527,7 +612,7 @@ export class SdcQuerySet {
               args: {
                 model_name: this.modelName,
                 model_query: this.modelQuery,
-                data: data ?? elem.serialize(),
+                data: elem?.serialize() ?? {},
                 files: files,
               },
             }),
@@ -539,6 +624,9 @@ export class SdcQuerySet {
                 typeof res.data.instance === "string"
                   ? JSON.parse(res.data.instance)
                   : res.data.instance;
+              if (elem) {
+                elem.id = data[0]?.pk || data[0]?.id;
+              }
               res.data.instance = this._parseServerRes(data)[0];
               resolve(res);
             },
@@ -601,6 +689,8 @@ export class SdcQuerySet {
       this.socket.close();
       delete this["socket"];
     }
+
+    this.valuesList.forEach((elem) => {elem._onClose()});
   }
 
   /**
@@ -612,14 +702,19 @@ export class SdcQuerySet {
   _readFiles(elem) {
     let toSolve = [];
     let files = {};
-    Object.entries(elem).forEach(([key, value]) => {
+    if (!elem) {
+      return Promise.resolve(files);
+    }
+    Object.keys(elem.constructor.fields).forEach((key) => {
+      const value = elem[key];
       if (value instanceof File) {
         toSolve.push(
           new Promise(async (resolve, reject) => {
             const id = uuidv4();
             this.openRequest[id] = [resolve, reject];
 
-            let result = await value.arrayBuffer();
+            const buffer = await value.arrayBuffer();
+            let result = new Uint8Array(buffer);
             let numberOfChunks = Math.ceil(result.length / MAX_FILE_UPLOAD);
             files[key] = {
               id: id,
@@ -628,16 +723,17 @@ export class SdcQuerySet {
               content_length: value.size,
             };
             for (let i = 0; i < numberOfChunks; ++i) {
+              const chunk = Array.from(result.slice(
+                MAX_FILE_UPLOAD * i,
+                MAX_FILE_UPLOAD * (i + 1),
+              ));
               this.socket.send(
                 JSON.stringify({
                   event: "model",
                   event_type: "upload",
                   event_id: id,
                   args: {
-                    chunk: result.slice(
-                      MAX_FILE_UPLOAD * i,
-                      MAX_FILE_UPLOAD * (i + 1),
-                    ),
+                    chunk,
                     idx: i,
                     number_of_chunks: numberOfChunks,
                     file_name: value.name,
@@ -670,7 +766,7 @@ export class SdcQuerySet {
     let data = JSON.parse(e.data);
     if (data.is_error) {
       if (this.openRequest.hasOwnProperty(data.event_id)) {
-        this.openRequest[data.event_id][1](data);
+        this.openRequest[data.event_id][1](new SdcModelError(data));
         this._closeOpenRequest(data.event_id);
       }
       if (data.msg || data.header) {
@@ -678,7 +774,7 @@ export class SdcQuerySet {
       }
 
       if (data.type === "connect") {
-        this.openRequest[CONNECTING_REQUEST_ID][1](data);
+        this.openRequest[CONNECTING_REQUEST_ID][1](new SdcModelError(data));
         this._closeOpenRequest(CONNECTING_REQUEST_ID);
         this._autoReconnect = false;
         this.socket.close();
@@ -695,7 +791,6 @@ export class SdcQuerySet {
         this._closeOpenRequest(CONNECTING_REQUEST_ID);
       } else if (["load", "named_view", "detail_view"].includes(data.type)) {
         const jsonRes = JSON.parse(data.args.data);
-        this.valuesList = [];
         data.args.data = await this._parseServerRes(jsonRes);
       } else if (data.type === "on_update" || data.type === "on_create") {
         const jsonRes = JSON.parse(data.args.data);
@@ -841,7 +936,8 @@ export class SdcQuerySet {
   _parseServerRes(results) {
     const newModels = []
     for (const x of results) {
-      const newModel = new (getModel(this.modelName))(x);
+      const ModelClass = getModel(this.modelName);
+      const newModel = new ModelClass({'id': x.pk ?? x.id, ...x.fields});
       const currentModel = this.byId(newModel.id);
       if (currentModel) {
         currentModel.setValues(newModel);
@@ -852,7 +948,7 @@ export class SdcQuerySet {
         newModels.push(newModel);
       }
     }
-
+    this.valuesList.sort((a, b) => a._id - b._id);
     return newModels;
   }
 }
@@ -867,9 +963,56 @@ export default class SdcModel {
    */
   constructor(modelName) {
     this._id = null;
+    this._forms = [];
     this._isloaded = false;
     this.formId = uuidv4();
     this.modelName = modelName;
+  }
+
+  /**
+   *
+   * @param {object?} modelQuerySet
+   * @param {AbstractSDC} parent
+   * @returns {SdcQuerySet}
+   */
+  static querySet(modelQuerySet = null, parent = null) {
+    if (!parent) {
+      return new SdcQuerySet(this.modeName, modelQuerySet);
+    }
+
+    return parent.querySet(this.modeName, modelQuerySet);
+  }
+
+  addForm($form) {
+    // Remove old listeners if form already set
+    const onChange = this._onChange.bind(this);
+
+    this._forms.push($form);
+
+    if ($form) {
+      // Attach delegated event handler to all inputs
+      $form.on(
+        "input.formWatcher change.formWatcher",
+        "input, select, textarea",
+        onChange
+      );
+    }
+  }
+
+  _onChange(event) {
+    const {name} = event.target;
+    if (this.constructor.fields[name]) {
+      this[`set${name}`](getValueFromField(event.target));
+    }
+  }
+
+  _updateForm(fieldName) {
+    const self = this;
+    this._forms.forEach(($form) => {
+      $form.find(`[name="${fieldName}"]`).each(function () {
+        setValueInField(this, self[fieldName])
+      });
+    });
   }
 
   setValues(data = {}) {
@@ -883,20 +1026,24 @@ export default class SdcModel {
    * @param {boolean} isLoaded
    */
   _setQuerySet(querySet, isLoaded) {
-    this._querySet = querySet;
+    this._querySet = new WeakRef(querySet);
     this._isloaded = isLoaded;
   }
 
-  save({formName = "edit_form", data = null}) {
-    return this._querySet.save({pk: this.id, formName, data});
+  save({formName = "edit_form", data = null} = {}) {
+    return this._querySet.deref().save({pk: this.id, formName, data});
   }
 
-  create({data = null}) {
-    return this._querySet.create({elem: this, data});
+  create({data = null} = {}) {
+    return this._querySet.deref().create({elem: this, data});
   }
 
   delete() {
+    return this._querySet.deref().delete({elem: this});
+  }
 
+  load() {
+    return this._querySet.deref().update({item: this});
   }
 
   get id() {
@@ -911,6 +1058,16 @@ export default class SdcModel {
     return this._id;
   }
 
+  close() {
+    return this._querySet.deref().close();
+  }
+
+  _onClose() {
+    Object.keys(this.constructor.fields)
+      .filter((x) => this[`_${x}`] instanceof SdcQuerySet)
+      .forEach((x) => this[`_${x}`].close());
+  }
+
   /**
    * Request the server-rendered detail view for this model instance.
    *
@@ -918,7 +1075,7 @@ export default class SdcModel {
    * @returns {*}
    */
   detailView({cbResolve = null, cbReject = null, templateContext = {}}) {
-    return this._querySet.detailView({pk: this.id, cbResolve, cbReject, templateContext});
+    return this._querySet.deref().detailView({pk: this.id, cbResolve, cbReject, templateContext});
   }
 
   serialize() {
@@ -936,12 +1093,33 @@ export default class SdcModel {
           }
 
         }
+      } else if (val.is_relation && value instanceof SdcModel) {
+        acc[key] = value.id ?? null;
       } else {
         acc[key] = value;
       }
 
       return acc
     }, {});
+  }
+
+  toJson() {
+    const res = {}
+    for (let key in this.constructor.fields) {
+      const value = this[key];
+
+      if (value instanceof File) {
+        res[key] = value.name;
+      } else if (value instanceof SdcModel) {
+        res[key] = value.id;
+      } else if (value instanceof SdcQuerySet) {
+        res[key] = value.getIds();
+      } else {
+        res[key] = value;
+      }
+    }
+
+    return res;
   }
 
   /**
@@ -986,19 +1164,8 @@ export default class SdcModel {
 
       for (let formItem of this.elements) {
         let name = formItem.name;
-
         if (name && name !== "" && !!fields[name]) {
-          if (formItem.type === "checkbox") {
-            formItem.checked = self[name];
-          } else if (formItem.type === "file") {
-            if (self[name] instanceof File) {
-              let container = new DataTransfer();
-              container.items.add(self[name]);
-              formItem.files = container;
-            }
-          } else {
-            $(formItem).val(self[name]);
-          }
+          setValueInField(formItem, self[name])
         }
       }
     });
@@ -1018,6 +1185,7 @@ export default class SdcModel {
     const self = this;
     const fields = this.constructor.fields;
     const returnValue = {}
+
     function setValueInForm(name, value) {
       if (!!fields[name]) {
         self[name] = value;
@@ -1032,18 +1200,7 @@ export default class SdcModel {
       }
 
       for (let formItem of this.elements) {
-        let name = formItem.name;
-        if (name && name !== "") {
-          if (formItem.type === "hidden") {
-            setValueInForm(name, parseHiddenInputs($(formItem).val()));
-          } else if (formItem.type === "checkbox") {
-            setValueInForm(name, formItem.checked);
-          } else if (formItem.type === "file") {
-            setValueInForm(name, formItem.files[0]);
-          } else {
-            setValueInForm(name, $(formItem).val());
-          }
-        }
+        setValueInForm(formItem.name, getValueFromField(formItem));
       }
 
       return self;
@@ -1073,7 +1230,7 @@ export default class SdcModel {
    */
   _createForm({cbResolve = null, cbReject = null}) {
     let $divForm = $("<div>");
-    this._querySet.getForm({
+    this._querySet.deref().getForm({
       modelObj: this,
       eventType: "create_form",
       formName: null,
@@ -1095,7 +1252,7 @@ export default class SdcModel {
   _editForm({cbResolve = null, cbReject = null}) {
     let $divForm = $("<div>");
 
-    this._querySet.getForm({
+    this._querySet.deref().getForm({
       modelObj: this,
       eventType: "edit_form",
       formName: null,
@@ -1117,7 +1274,7 @@ export default class SdcModel {
   namedForm({formName, cbResolve = null, cbReject = null}) {
     let $divForm = $('<div  class="container-fluid">');
 
-    this._querySet.getForm({
+    this._querySet.deref().getForm({
       modelObj: this,
       eventType: "named_form",
       formName,
@@ -1155,7 +1312,7 @@ export default class SdcModel {
 
     switch (type) {
       case "CharField":
-      case "TextField":
+      case "TeextField":
       case "UUIDField":
       case "EmailField":
         return `${value}`;
@@ -1191,6 +1348,14 @@ export default class SdcModel {
           return null;
         }
 
+        if (FileLoaded.isValid(value)) {
+          return new FileLoaded(value);
+        }
+
+        if (value instanceof FileLoaded) {
+          return new FileLoaded(value);
+        }
+
         if (typeof File !== "undefined" && value instanceof File) {
           if (config.max_size && value.size > config.max_size) {
             return `File too large (max ${config.max_size} bytes)`;
@@ -1200,7 +1365,7 @@ export default class SdcModel {
             return `Invalid file type (${value.type})`;
           }
 
-          return null;
+          return value;
         }
         break;
 
@@ -1254,8 +1419,8 @@ function validateField(value, config) {
   }
 
   if (manyToMany || oneToMany || manyToOne || oneToOne) {
-    if (!value instanceof SdcQuerySet || value.modelName !== relatedModel) {
-      if (typeof value !== "object" && typeof value !== "number") {
+    if (!(value instanceof SdcQuerySet) || value.modelName !== relatedModel) {
+      if (typeof value !== "object" && Number.isNaN(parseInt(value))) {
         return "Must be object or ID";
       }
       return null;
@@ -1326,7 +1491,11 @@ function validateField(value, config) {
         return "Must be JSON object";
       }
       break;
-
+    case "FileField":
+      if (!FileLoaded.isValid(value) && !(value instanceof File) && !(value instanceof FileLoaded)) {
+        return "Must be a valid file";
+      }
+      break;
     default:
       break;
   }

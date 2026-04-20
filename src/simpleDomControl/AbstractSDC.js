@@ -1,6 +1,5 @@
 import {allOff} from "./sdc_events.js";
 import {app} from "./sdc_main.js";
-import {Model} from "./sdc_socket.js";
 import {SdcQuerySet} from "./sdc_model.js";
 import {callServer} from "./sdc_server_call.js";
 import {
@@ -227,47 +226,21 @@ export class AbstractSDC {
     );
   }
 
+  /**
+   *
+   * @param {string} modelName
+   * @param  {object?} modelQuery
+   * @returns {SdcQuerySet}
+   */
   querySet(modelName, modelQuery = {}) {
     const newQuerySet = new SdcQuerySet(modelName, modelQuery);
     this._models.push(newQuerySet);
     return newQuerySet;
   }
 
-  /**
-   *
-   * @param model_name {string | Number}
-   * @param model_query {Object}
-   * @constructor
-   */
-  newModel(model_name, model_query = {}) {
-    if (model_name instanceof Number && model_name.hasOwnProperty("load")) {
-      return model_name.load(this);
-    }
-    if (model_name instanceof Model) {
-      return model_name;
-    }
-
-    const model = new Model(model_name, model_query);
-    this._models.push(model);
-    return model;
-  }
-
-  /**
-   *
-   * @param model_name {string}
-   * @param model_query {Object}
-   * @param values {Object}
-   * @constructor
-   */
-  updateModel(model_name, model_query = {}, values) {
-    let model = new Model(model_name, model_query);
-    return model.load().then(() => {
-      model.values |= values;
-      model.save().then(() => {
-        model.close();
-        return model.values;
-      });
-    });
+  newModel(modelName, modelQuery = {}) {
+    console.warn("newModel is deprecated and will soon be removed");
+    return this.querySet(modelName, modelQuery);
   }
 
   /**

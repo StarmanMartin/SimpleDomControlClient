@@ -1,3 +1,5 @@
+import {SdcModel, SdcQuerySet} from "../index.js";
+
 /**
  * Reference to the HTML body.
  * @type {*|jQuery|HTMLElement}
@@ -191,7 +193,7 @@ function progressHandlingFunction(e) {
 
     $progressContainer
       .find(".progress-bar")
-      .css({ width: percentVal })
+      .css({width: percentVal})
       .text(percentVal);
   }
 }
@@ -294,4 +296,82 @@ export function jqueryInsertAt($container, index, $newElement) {
     $container.append($newElement);
   }
   return this;
+}
+
+/**
+ * Parse hidden input values back into the closest JavaScript primitive.
+ *
+ * Hidden inputs are often used to preserve values that were originally booleans,
+ * numbers or quoted strings. This keeps form-to-model sync from turning
+ * everything into plain strings.
+ *
+ * @param {string} value
+ * @returns {*}
+ */
+function parseHiddenInputs(value) {
+  let isFloatReg = /^-?\d+\.?\d+$/;
+  let isIntReg = /^-?\d+$/;
+  let isBoolReg = /^(true|false)$/;
+  let isStringReg = /^(['][^']*['])|(["][^"]*["])$/;
+
+  if (value.toLowerCase().match(isBoolReg)) {
+    return value.toLowerCase() === "true";
+  } else if (value === "undefined") {
+    return undefined;
+  } else if (value.toLowerCase() === "none") {
+    return null;
+  } else if (value.match(isIntReg)) {
+    return parseInt(value, 10);
+  } else if (value.match(isFloatReg)) {
+    return parseFloat(value);
+  } else if (value.match(isStringReg)) {
+    return value.substring(1, value.length - 1);
+  }
+  return value;
+}
+
+export function getValueFromField(formItem) {
+  let {type, name} = formItem;
+  if (name && name !== "") {
+    if (type === "hidden") {
+      return parseHiddenInputs($(formItem).val());
+    }
+
+    if (type === "checkbox") {
+      return formItem.checked;
+    }
+
+    if (type === "file") {
+      return formItem.files[0];
+    }
+
+    return $(formItem).val();
+  }
+  return null;
+}
+
+
+export function setValueInField(formItem, value) {
+  let {type, name} = formItem;
+  if (name && name !== "") {
+
+    if (type === "checkbox") {
+      formItem.checked = value;
+    } else if (type === "file") {
+      if (value instanceof File) {
+        if (typeof DataTransfer !== "undefined") {
+          let container = new DataTransfer();
+          container.items.add(value);
+          formItem.files = container;
+        }
+      }
+    } else if (value instanceof SdcModel) {
+      $(formItem).val(value.id);
+    } else if (value instanceof SdcQuerySet) {
+      $(formItem).val(`[${value.getIds().join(',')}]`);
+    } else {
+      $(formItem).val(value);
+    }
+  }
+  return null;
 }

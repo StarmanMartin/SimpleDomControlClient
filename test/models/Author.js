@@ -58,7 +58,7 @@ export default class Author extends SdcModel {
     super("Author");
     this._toManyFields = [];
     this._book_set = new SdcQuerySet('Book');
-    this._toManyFields.push(this._book_set);
+    this._toManyFields.push([this._book_set, 'author']);
     this._id = null;
     this._name = null;
     this._age = null;
@@ -67,8 +67,10 @@ export default class Author extends SdcModel {
 
   setValues(data = {}) {
     data.id ??= data.pk ?? null;
+    try {
     this.book_set.setFilter({ author:  data.id });
-    this.book_set.setIds(data.book_set || [])
+    this.book_set = data.book_set || [];
+    } catch {} 
     try {
       this.id = data.id ?? null;
     } catch {} 
@@ -81,22 +83,43 @@ export default class Author extends SdcModel {
   }
 
   set book_set(value){
+    this.setbook_set(value);
+    this._updateForm('book_set');
+  }
+
+  set id(value){
+    this.setid(value);
+    this._updateForm('id');
+  }
+
+  set name(value){
+    this.setname(value);
+    this._updateForm('name');
+  }
+
+  set age(value){
+    this.setage(value);
+    this._updateForm('age');
+  }
+
+
+  setbook_set(value){
     this.validate(value, Author.fields.book_set);
     this._book_set.setIds(this.parseValue(value, Author.fields.book_set));
   }
 
-  set id(value){
+  setid(value){
     this.validate(value, Author.fields.id);
-    this._toManyFields.forEach((x) => x.setFilter({id: value}));
+    this._toManyFields.forEach(([x, fn]) => x.setFilter({[fn]: value}));
     this._id = this.parseValue(value, Author.fields.id);
   }
 
-  set name(value){
+  setname(value){
     this.validate(value, Author.fields.name);
     this._name = this.parseValue(value, Author.fields.name);
   }
 
-  set age(value){
+  setage(value){
     this.validate(value, Author.fields.age);
     this._age = this.parseValue(value, Author.fields.age);
   }

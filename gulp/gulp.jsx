@@ -7,7 +7,7 @@ const exec = require('gulp-exec');
 const dotenv = require("dotenv");
 const gulp = require('gulp');
 
-function scss(bundle_mode=false) {
+function scss(bundle_mode = false) {
   const src_path = bundle_mode ? './src/*/*.scss' : './src/*.scss';
   const dest_path = bundle_mode ? './bin' : '../static';
   return function scss() {
@@ -81,11 +81,14 @@ function link_files(cb) {
   const error_msg = `The environment variable PYTHON (Path to python interpreter) is not set. In this case link_files cannot be executed. Or the ${process.cwd()} is not correct`;
   try {
     return src('./manage.py')
-      .pipe(exec(file => `${python} ${file.path} sdc_update_links`, options).on('error', function (err) {
-        console.error('Error:', err.message);
-        console.error(error_msg);
-        this.emit('end'); // Continue with the next task
-      })).on('end', () => {
+      .pipe(exec(file => `${python} ${file.path} sdc_update_links`, options))
+      .pipe(exec(file => `${python} ${file.path} sdc_make_model_js`, options)
+        .on('error', function (err) {
+          console.error('Error:', err.message);
+          console.error(error_msg);
+          this.emit('end'); // Continue with the next task
+        }))
+      .on('end', () => {
         process.chdir('./Assets');
       });
   } catch {
@@ -117,13 +120,11 @@ exports.sdc_watch_webpack_factory = (webpack_task) => {
   return function () {
     // const watcher = chokidar.watch('./src/**/*.js', {followSymlinks: true});
 
-    const watcher = gulp.watch(
-      'src/**/*.js',
-      {
-        followSymlinks: true,   // ✅ this enables following symlinks
-        usePolling: false,      // optional
-        ignored: /node_modules/,
-      })
+    const watcher = gulp.watch('src/**/*.js', {
+      followSymlinks: true,   // ✅ this enables following symlinks
+      usePolling: false,      // optional
+      ignored: /node_modules/,
+    })
     watcher.on('change', (a) => {
       console.log(`${a} has changed! javascript is recompiling...`);
       webpack_series_factory(webpack_task)();

@@ -59,21 +59,39 @@ export default class Book extends SdcModel {
     try {
       this.title = data.title ?? null;
     } catch {} 
-    this.author.filter({ id: data.author });
+    try {
+      if (data.author) { this.author = data.author; }
+    } catch {} 
   }
 
   set id(value){
-    this.validate(value, Book.fields.id);
-    this._toManyFields.forEach((x) => x.setFilter({id: value}));
-    this._id = this.parseValue(value, Book.fields.id);
+    this.setid(value);
+    this._updateForm('id');
   }
 
   set title(value){
+    this.settitle(value);
+    this._updateForm('title');
+  }
+
+  set author(value){
+    this.setauthor(value);
+    this._updateForm('author');
+  }
+
+
+  setid(value){
+    this.validate(value, Book.fields.id);
+    this._toManyFields.forEach(([x, fn]) => x.setFilter({[fn]: value}));
+    this._id = this.parseValue(value, Book.fields.id);
+  }
+
+  settitle(value){
     this.validate(value, Book.fields.title);
     this._title = this.parseValue(value, Book.fields.title);
   }
 
-  set author(value){
+  setauthor(value){
     this.validate(value, Book.fields.author);
     this._author.setIds(this.parseValue(value, Book.fields.author));
   }

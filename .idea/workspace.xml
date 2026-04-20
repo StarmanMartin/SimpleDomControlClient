@@ -7,13 +7,23 @@
     <list default="true" id="4b4ede81-fe43-4a68-9186-e15152e2d80c" name="Changes" comment="v 0.57.9 added LCB algorithm to reconcile function">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dist/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/dist/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/simpleDomControl/sdc_view.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/sdc_view.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/view.test.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/view.test.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gulp/gulp.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/gulp/gulp.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/simpleDomControl/AbstractSDC.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/AbstractSDC.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/simpleDomControl/sdc_model.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/sdc_model.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/simpleDomControl/sdc_socket.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/sdc_socket.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/simpleDomControl/sdc_utils.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/sdc_utils.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/models/Author.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/models/Author.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/models/Book.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/models/Book.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/models/BookContent.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/models/BookContent.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/models/src.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/models/src.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="EmbeddingIndexingInfo">
+    <option name="cachedIndexableFilesCount" value="139" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -40,6 +50,10 @@
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 1
 }</component>
@@ -52,21 +66,29 @@
   "keyToString": {
     "Jest.All Tests.executor": "Run",
     "Jest.Controller.executor": "Debug",
+    "Jest.Test all.executor": "Debug",
     "Jest.Test reconcile controller.executor": "Run",
-    "Jest.Test reconcile.executor": "Run",
+    "Jest.Test reconcile.executor": "Debug",
     "Jest.jest.config.mjs.executor": "Run",
+    "Jest.model fixtures.queryset create uses the mocked socket receiver to append new rows.executor": "Debug",
+    "Jest.model fixtures.queryset load receives rows through the mocked socket receiver.executor": "Debug",
+    "Jest.view.test.js.executor": "Debug",
+    "RunOnceActivity.MCP Project settings loaded": "true",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.go.formatter.settings.were.checked": "true",
     "RunOnceActivity.go.migrated.go.modules.settings": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "ai.playground.ignore.import.keys.banner.in.settings": "true",
     "git-widget-placeholder": "main",
     "go.import.settings.migrated": "true",
     "javascript.nodejs.core.library.configured.version": "22.14.0",
     "javascript.nodejs.core.library.typings.version": "22.14.1",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/home/martin/Develop/private/SimpleDomControlClient",
+    "last_opened_file_path": "/home/martin/Develop/private/SimpleDomControl",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -89,7 +111,7 @@
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
-  <component name="RunManager" selected="Jest.Test reconcile">
+  <component name="RunManager" selected="Jest.Test all">
     <configuration name="Controller" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
       <node-interpreter value="project" />
       <jest-package value="$PROJECT_DIR$/node_modules/jest" />
@@ -102,6 +124,16 @@
       <test-names>
         <test-name value="Controller" />
       </test-names>
+      <method v="2" />
+    </configuration>
+    <configuration name="Test all" type="JavaScriptTestRunnerJest" temporary="true">
+      <node-interpreter value="project" />
+      <jest-package value="$PROJECT_DIR$/node_modules/jest" />
+      <working-dir value="$PROJECT_DIR$" />
+      <envs>
+        <env name="NODE_OPTIONS" value="--experimental-vm-modules" />
+      </envs>
+      <scope-kind value="ALL" />
       <method v="2" />
     </configuration>
     <configuration name="Test reconcile controller" type="JavaScriptTestRunnerJest">
@@ -118,20 +150,6 @@
       </test-names>
       <method v="2" />
     </configuration>
-    <configuration name="Test reconcile" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
-      <node-interpreter value="project" />
-      <jest-package value="$PROJECT_DIR$/node_modules/jest" />
-      <working-dir value="$PROJECT_DIR$" />
-      <envs>
-        <env name="NODE_OPTIONS" value="--experimental-vm-modules" />
-      </envs>
-      <scope-kind value="SUITE" />
-      <test-file value="$PROJECT_DIR$/test/view.test.js" />
-      <test-names>
-        <test-name value="Test reconcile" />
-      </test-names>
-      <method v="2" />
-    </configuration>
     <configuration name="jest.config.mjs" type="JavaScriptTestRunnerJest" nameIsGenerated="true">
       <config-file value="$PROJECT_DIR$/jest.config.mjs" />
       <node-interpreter value="$USER_HOME$/.asdf/installs/nodejs/22.8.0/bin/node" />
@@ -140,6 +158,17 @@
       <working-dir value="$PROJECT_DIR$" />
       <envs />
       <scope-kind value="ALL" />
+      <method v="2" />
+    </configuration>
+    <configuration name="view.test.js" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
+      <node-interpreter value="project" />
+      <jest-package value="$PROJECT_DIR$/node_modules/jest" />
+      <working-dir value="$PROJECT_DIR$" />
+      <envs>
+        <env name="NODE_OPTIONS" value="--experimental-vm-modules" />
+      </envs>
+      <scope-kind value="TEST_FILE" />
+      <test-file value="$PROJECT_DIR$/test/view.test.js" />
       <method v="2" />
     </configuration>
     <configuration name="build" type="js.build_tools.npm">
@@ -165,14 +194,16 @@
     <list>
       <item itemvalue="Jest.jest.config.mjs" />
       <item itemvalue="Jest.Test reconcile controller" />
+      <item itemvalue="Jest.view.test.js" />
       <item itemvalue="Jest.Controller" />
-      <item itemvalue="Jest.Test reconcile" />
+      <item itemvalue="Jest.Test all" />
       <item itemvalue="npm.build" />
       <item itemvalue="npm.test" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Jest.Test reconcile" />
+        <item itemvalue="Jest.Test all" />
+        <item itemvalue="Jest.view.test.js" />
         <item itemvalue="npm.test" />
         <item itemvalue="Jest.Controller" />
       </list>
@@ -181,8 +212,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-f27c65a3e318-JavaScript-PY-251.23774.444" />
-        <option value="bundled-python-sdk-890ed5b35930-d9c5bdb153f4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.23774.444" />
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-PY-253.29346.142" />
+        <option value="bundled-python-sdk-f2b7a9f6281b-6e1f45a539f7-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.29346.142" />
       </set>
     </attachedChunks>
   </component>
@@ -210,6 +241,7 @@
       <workItem from="1745266749102" duration="42527000" />
       <workItem from="1745433489565" duration="22162000" />
       <workItem from="1746775623778" duration="14038000" />
+      <workItem from="1776656121875" duration="2796000" />
     </task>
     <task id="LOCAL-00001" summary="v 0.4.11 add gulp tasks to client bib">
       <option name="closed" value="true" />
@@ -287,6 +319,28 @@
     <settings-migrated>true</settings-migrated>
   </component>
   <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/src/simpleDomControl/sdc_model.js</url>
+          <line>1041</line>
+          <properties lambdaOrdinal="-1" />
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/src/simpleDomControl/sdc_model.js</url>
+          <line>767</line>
+          <properties lambdaOrdinal="-1" />
+          <option name="timeStamp" value="7" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/src/simpleDomControl/sdc_model.js</url>
+          <line>629</line>
+          <properties lambdaOrdinal="-1" />
+          <option name="timeStamp" value="13" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
     <watches-manager>
       <configuration name="JavaScriptTestRunnerJest">
         <watch expression="MAIN.html()" language="JavaScript" />
