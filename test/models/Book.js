@@ -1,4 +1,4 @@
-import {SdcModel, SdcQuerySet} from 'sdc_client';
+import {SdcModel, SdcQuerySet} from '../../src/index.js';
 
 export default class Book extends SdcModel {
 

@@ -168,7 +168,7 @@ export class SdcQuerySet {
     } else if (ids instanceof Array) {
       const tempNumList = ids.map((x) => parseInt(x));
       if (!tempNumList.some(Number.isNaN)) {
-        numList = tempNumList
+        numList = tempNumList;
       }
     } else if (ids instanceof String) {
       const tempNumList = ids.split(',').map((x) => parseInt(x));
@@ -183,9 +183,9 @@ export class SdcQuerySet {
       const newModel = this.new();
       newModel.id = numId;
     } else if (numList) {
-      this.valuesList = this.valuesList.filter(item => numList.includes(item.id));
+      this.valuesList = this.valuesList.filter((item) => numList.includes(item.id));
       const valueIds = this.getIds();
-      ids.filter(x => !valueIds.includes(x)).forEach((id) => {
+      numList.filter(x => !valueIds.includes(x)).forEach((id) => {
         this.valuesList.push(new (getModel(this.modelName))({id}));
       });
     }
@@ -690,7 +690,9 @@ export class SdcQuerySet {
       delete this["socket"];
     }
 
-    this.valuesList.forEach((elem) => {elem._onClose()});
+    this.valuesList.forEach((elem) => {
+      elem._onClose()
+    });
   }
 
   /**

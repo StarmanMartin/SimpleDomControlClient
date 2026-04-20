@@ -1,4 +1,4 @@
-import {SdcModel, SdcQuerySet} from 'sdc_client';
+import {SdcModel, SdcQuerySet} from '../../src/index.js';
 
 export default class Author extends SdcModel {
 
@@ -105,6 +105,7 @@ export default class Author extends SdcModel {
 
   setbook_set(value){
     this.validate(value, Author.fields.book_set);
+    const a = this.parseValue(value, Author.fields.book_set)
     this._book_set.setIds(this.parseValue(value, Author.fields.book_set));
   }
 

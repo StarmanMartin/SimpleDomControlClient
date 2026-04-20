@@ -1,4 +1,4 @@
-import {SdcModel} from 'sdc_client';
+import {SdcModel} from '../../src/index.js';
 
 export default class SdcUser extends SdcModel {
 

@@ -5,7 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4b4ede81-fe43-4a68-9186-e15152e2d80c" name="Changes" comment="v 0.58.0 update ci">
-      <change beforePath="$PROJECT_DIR$/.github/workflows/node.js.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/node.js.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/dist/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/ugly.index.js" beforeDir="false" afterPath="$PROJECT_DIR$/dist/ugly.index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/simpleDomControl/sdc_model.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/sdc_model.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/models/Author.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/models/Author.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/models/Book.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/models/Book.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/models/BookContent.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/models/BookContent.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/models/SdcUser.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/models/SdcUser.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -231,7 +238,7 @@
       <workItem from="1745266749102" duration="42527000" />
       <workItem from="1745433489565" duration="22162000" />
       <workItem from="1746775623778" duration="14038000" />
-      <workItem from="1776656121875" duration="3253000" />
+      <workItem from="1776656121875" duration="4018000" />
     </task>
     <task id="LOCAL-00001" summary="v 0.4.11 add gulp tasks to client bib">
       <option name="closed" value="true" />
@@ -321,7 +328,15 @@
       <option name="project" value="LOCAL" />
       <updated>1776668891797</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="v 0.58.0 update ci">
+      <option name="closed" value="true" />
+      <created>1776669031982</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1776669031983</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -347,21 +362,27 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/src/simpleDomControl/sdc_model.js</url>
-          <line>1045</line>
+          <line>1047</line>
           <properties lambdaOrdinal="-1" />
           <option name="timeStamp" value="4" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/src/simpleDomControl/sdc_model.js</url>
-          <line>767</line>
+          <line>769</line>
           <properties lambdaOrdinal="-1" />
           <option name="timeStamp" value="7" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/src/simpleDomControl/sdc_model.js</url>
-          <line>629</line>
+          <url>file://$PROJECT_DIR$/test/model.test.js</url>
+          <line>171</line>
           <properties lambdaOrdinal="-1" />
-          <option name="timeStamp" value="13" />
+          <option name="timeStamp" value="14" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/test/model.test.js</url>
+          <line>161</line>
+          <properties lambdaOrdinal="-1" />
+          <option name="timeStamp" value="15" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
