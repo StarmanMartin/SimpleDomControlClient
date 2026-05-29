@@ -4,16 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b4ede81-fe43-4a68-9186-e15152e2d80c" name="Changes" comment="v 0.58.0 update ci">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/dist/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/ugly.index.js" beforeDir="false" afterPath="$PROJECT_DIR$/dist/ugly.index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/simpleDomControl/sdc_model.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/simpleDomControl/sdc_model.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/models/Author.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/models/Author.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/models/Book.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/models/Book.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/models/BookContent.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/models/BookContent.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/models/SdcUser.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/models/SdcUser.js" afterDir="false" />
-    </list>
+    <list default="true" id="4b4ede81-fe43-4a68-9186-e15152e2d80c" name="Changes" comment="v 0.58.0 fixed test with dist" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -238,7 +229,7 @@
       <workItem from="1745266749102" duration="42527000" />
       <workItem from="1745433489565" duration="22162000" />
       <workItem from="1746775623778" duration="14038000" />
-      <workItem from="1776656121875" duration="4018000" />
+      <workItem from="1776656121875" duration="4646000" />
     </task>
     <task id="LOCAL-00001" summary="v 0.4.11 add gulp tasks to client bib">
       <option name="closed" value="true" />
@@ -336,7 +327,15 @@
       <option name="project" value="LOCAL" />
       <updated>1776669031983</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="v 0.58.0 fixed test with dist">
+      <option name="closed" value="true" />
+      <created>1776669821856</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1776669821856</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -352,7 +351,8 @@
     <MESSAGE value="v 0.57.9 added LCB algorithm to reconcile function" />
     <MESSAGE value="v 0.58.0 Models as class objects" />
     <MESSAGE value="v 0.58.0 update ci" />
-    <option name="LAST_COMMIT_MESSAGE" value="v 0.58.0 update ci" />
+    <MESSAGE value="v 0.58.0 fixed test with dist" />
+    <option name="LAST_COMMIT_MESSAGE" value="v 0.58.0 fixed test with dist" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

@@ -111,6 +111,7 @@ exports.sdc_watch_scss = function () {
 }
 
 function webpack_series_factory(webpack_task) {
+
   return series(clean, pre_compile_javascript, webpack_task, clean);
 }
 

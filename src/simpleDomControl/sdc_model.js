@@ -19,6 +19,7 @@ class SdcModelError extends Error {
     this.msg = props.msg;
     this.header = props.header;
     this.is_error = props.is_error;
+    this.html = props.html;
   }
 }
 
@@ -612,7 +613,7 @@ export class SdcQuerySet {
               args: {
                 model_name: this.modelName,
                 model_query: this.modelQuery,
-                data: elem?.serialize() ?? {},
+                data: data ?? elem?.serialize() ?? {},
                 files: files,
               },
             }),
