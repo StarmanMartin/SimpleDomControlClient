@@ -225,7 +225,7 @@ export let app = {
     }
 
     args.CSRF_TOKEN = app.CSRF_TOKEN;
-    return app.ajax(controller, url, params, $.post);
+    return app.ajax(controller, url, args, $.post);
   },
 
   /**

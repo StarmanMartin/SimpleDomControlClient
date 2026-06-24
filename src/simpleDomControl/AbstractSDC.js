@@ -102,7 +102,7 @@ export class AbstractSDC {
    */
   onInit() {
     if (app.DEBUG && !this._isMixin) {
-      console.DEBUG(Array.apply(null, arguments), this._tagName);
+      console.debug(Array.apply(null, arguments), this._tagName);
     }
   }
 

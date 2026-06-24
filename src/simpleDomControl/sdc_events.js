@@ -62,7 +62,7 @@ export function setEvent(name, functionName) {
 export function allOff(controller) {
   for (let eventName in handlerList) {
     if (handlerList.hasOwnProperty(eventName)) {
-      for (let i = handlerList[eventName].length; i >= 0; i--) {
+      for (let i = handlerList[eventName].length - 1; i >= 0; i--) {
         if (controller === handlerList[eventName][i]) {
           handlerList[eventName].splice(i, 1);
         }
