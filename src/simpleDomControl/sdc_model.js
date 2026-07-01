@@ -326,7 +326,10 @@ export class SdcQuerySet {
           }),
         );
 
-        this.openRequest[id] = [resolve, reject];
+        this.openRequest[id] = [(data)=> {
+          this.loaded = true;
+          resolve(data);
+        }, reject];
       });
     });
   }
@@ -525,9 +528,9 @@ export class SdcQuerySet {
     });
   }
 
-  listView({modelQuery = {}, cbResolve = null, cbReject = null, templateContext = {}}) {
+  listView({modelQuery = {}, searchValues = {}, cbResolve = null, cbReject = null, templateContext = {}}) {
     return this._sendListView({
-      modelQuery: Object.assign({}, this.modelQuery, modelQuery),
+      modelQuery: Object.assign({}, this.modelQuery, modelQuery, { '__search_values': searchValues }),
       cbResolve,
       cbReject,
       templateContext,
@@ -967,7 +970,7 @@ export default class SdcModel {
   constructor(modelName) {
     this._id = null;
     this._forms = [];
-    this._isloaded = false;
+    this.loaded = false;
     this.formId = uuidv4();
     this.modelName = modelName;
   }
@@ -1030,7 +1033,7 @@ export default class SdcModel {
    */
   _setQuerySet(querySet, isLoaded) {
     this._querySet = new WeakRef(querySet);
-    this._isloaded = isLoaded;
+    this.loaded = isLoaded;
   }
 
   save({formName = "edit_form", data = null} = {}) {
