@@ -1,7 +1,7 @@
-import {getValueFromField, setValueInField, uuidv4} from "./sdc_utils.js";
-import {getModel} from "./sdc_socket.js"
-import {app} from "./sdc_main.js";
-import {trigger} from "./sdc_events.js";
+import { getValueFromField, setValueInField, uuidv4 } from "./sdc_utils.js";
+import { getModel } from "./sdc_socket.js"
+import { app } from "./sdc_main.js";
+import { trigger } from "./sdc_events.js";
 
 const MAX_FILE_UPLOAD = 25000;
 const CONNECTING_REQUEST_ID = "_connecting_process";
@@ -24,7 +24,7 @@ class SdcModelError extends Error {
 }
 
 class FileLoaded {
-  constructor({name, url}) {
+  constructor({ name, url }) {
     this.name = name;
     this.url = url;
     this.content = null;
@@ -128,9 +128,9 @@ export class SdcQuerySet {
       next: () => {
         ++idx;
         if (idx < this.valuesList.length) {
-          return {value: this.valuesList[idx], done: false};
+          return { value: this.valuesList[idx], done: false };
         }
-        return {value: null, done: true};
+        return { value: null, done: true };
       },
     };
   }
@@ -187,7 +187,7 @@ export class SdcQuerySet {
       this.valuesList = this.valuesList.filter((item) => numList.includes(item.id));
       const valueIds = this.getIds();
       numList.filter(x => !valueIds.includes(x)).forEach((id) => {
-        this.valuesList.push(new (getModel(this.modelName))({id}));
+        this.valuesList.push(new (getModel(this.modelName))({ id }));
       });
     }
     return this.valuesList;
@@ -267,9 +267,9 @@ export class SdcQuerySet {
    * @param {?SdcModel} item
    * @returns {Promise<SdcQuerySet>}
    */
-  update({modelQuery = null, item = null}) {
+  update({ modelQuery = null, item = null }) {
     this.modelQuery = modelQuery ?? this.modelQuery;
-    let loadQuery = item ? {pk: item.id} : this.modelQuery;
+    let loadQuery = item ? { pk: item.id } : this.modelQuery;
     return this._sendLoad(loadQuery);
   }
 
@@ -279,7 +279,7 @@ export class SdcQuerySet {
    * @param elem {SdcModel}
    * @returns {Promise<unknown>}
    */
-  delete({pk = null, elem = null}) {
+  delete({ pk = null, elem = null }) {
     pk = !elem ? pk : elem.id;
     if (pk === null) {
       throw new Error("pk or elem must be set");
@@ -326,7 +326,7 @@ export class SdcQuerySet {
           }),
         );
 
-        this.openRequest[id] = [(data)=> {
+        this.openRequest[id] = [(data) => {
           this.loaded = true;
           resolve(data);
         }, reject];
@@ -454,7 +454,7 @@ export class SdcQuerySet {
    * @param {string} eventType
    * @param {SdcModel} modelObj
    */
-  getForm({modelObj, eventType, formName, $divForm, cbResolve, cbReject, formId}) {
+  getForm({ modelObj, eventType, formName, $divForm, cbResolve, cbReject, formId }) {
     const id = uuidv4();
     const pk = modelObj.id ?? -1;
     this.isConnected().then(() => {
@@ -519,7 +519,7 @@ export class SdcQuerySet {
     return this.valuesList[0];
   }
 
-  detailView({pk, cbResolve = null, cbReject = null, templateContext = {}}) {
+  detailView({ pk, cbResolve = null, cbReject = null, templateContext = {} }) {
     return this._sendDetailView({
       pk,
       cbResolve,
@@ -528,7 +528,7 @@ export class SdcQuerySet {
     });
   }
 
-  listView({modelQuery = {}, searchValues = {}, cbResolve = null, cbReject = null, templateContext = {}}) {
+  listView({ modelQuery = {}, searchValues = {}, cbResolve = null, cbReject = null, templateContext = {} }) {
     return this._sendListView({
       modelQuery: Object.assign({}, this.modelQuery, modelQuery, { '__search_values': searchValues }),
       cbResolve,
@@ -537,7 +537,7 @@ export class SdcQuerySet {
     });
   }
 
-  save({pk = null, formName = "edit_form", data = null} = {}) {
+  save({ pk = null, formName = "edit_form", data = null } = {}) {
     const normPk = normalizePk(pk);
     return this.isConnected().then(() => {
       let elemList;
@@ -556,7 +556,7 @@ export class SdcQuerySet {
         pList.push(
           new Promise((resolve, reject) => {
             this._readFiles(elem).then((files) => {
-              const sendData = data ? {...data} : elem.serialize();
+              const sendData = data ? { ...data } : elem.serialize();
               sendData.pk = elem.id;
               this.socket.send(
                 JSON.stringify({
@@ -600,7 +600,7 @@ export class SdcQuerySet {
    * @param data {?object}
    * @returns {Promise<unknown>}
    */
-  create({elem = null, data = null} = {}) {
+  create({ elem = null, data = null } = {}) {
     const id = uuidv4();
     if (!elem) {
       elem = this.new(data);
@@ -943,10 +943,10 @@ export class SdcQuerySet {
     const newModels = []
     for (const x of results) {
       const ModelClass = getModel(this.modelName);
-      if(!ModelClass) {
+      if (!ModelClass) {
         throw new Error(`${this.modelName} is no SdcModel. mybe the models ar not importad.`);
       }
-      const newModel = new ModelClass({'id': x.pk ?? x.id, ...x.fields});
+      const newModel = new ModelClass({ 'id': x.pk ?? x.id, ...x.fields });
       const currentModel = this.byId(newModel.id);
       if (currentModel) {
         currentModel.setValues(newModel);
@@ -1009,7 +1009,7 @@ export default class SdcModel {
   }
 
   _onChange(event) {
-    const {name} = event.target;
+    const { name } = event.target;
     if (this.constructor.fields[name]) {
       this[`set${name}`](getValueFromField(event.target));
     }
@@ -1039,20 +1039,20 @@ export default class SdcModel {
     this.loaded = isLoaded;
   }
 
-  save({formName = "edit_form", data = null} = {}) {
-    return this._querySet.deref().save({pk: this.id, formName, data});
+  save({ formName = "edit_form", data = null } = {}) {
+    return this._querySet.deref().save({ pk: this.id, formName, data });
   }
 
-  create({data = null} = {}) {
-    return this._querySet.deref().create({elem: this, data});
+  create({ data = null } = {}) {
+    return this._querySet.deref().create({ elem: this, data });
   }
 
   delete() {
-    return this._querySet.deref().delete({elem: this});
+    return this._querySet.deref().delete({ elem: this });
   }
 
   load() {
-    return this._querySet.deref().update({item: this});
+    return this._querySet.deref().update({ item: this });
   }
 
   get id() {
@@ -1083,8 +1083,8 @@ export default class SdcModel {
    * @param {object} options
    * @returns {*}
    */
-  detailView({cbResolve = null, cbReject = null, templateContext = {}}) {
-    return this._querySet.deref().detailView({pk: this.id, cbResolve, cbReject, templateContext});
+  detailView({ cbResolve = null, cbReject = null, templateContext = {} }) {
+    return this._querySet.deref().detailView({ pk: this.id, cbResolve, cbReject, templateContext });
   }
 
   serialize() {
@@ -1224,11 +1224,11 @@ export default class SdcModel {
    * @param {object} options
    * @returns {*}
    */
-  form({cbResolve = null, cbReject = null} = {}) {
+  form({ cbResolve = null, cbReject = null } = {}) {
     if (this.id === null || this.id === -1) {
-      return this._createForm({cbReject, cbResolve});
+      return this._createForm({ cbReject, cbResolve });
     }
-    return this._editForm({cbReject, cbResolve});
+    return this._editForm({ cbReject, cbResolve });
   }
 
   /**
@@ -1237,7 +1237,7 @@ export default class SdcModel {
    * @param {object} options
    * @returns {*}
    */
-  _createForm({cbResolve = null, cbReject = null}) {
+  _createForm({ cbResolve = null, cbReject = null }) {
     let $divForm = $("<div>");
     this._querySet.deref().getForm({
       modelObj: this,
@@ -1258,7 +1258,7 @@ export default class SdcModel {
    * @param {object} options
    * @returns {*}
    */
-  _editForm({cbResolve = null, cbReject = null}) {
+  _editForm({ cbResolve = null, cbReject = null }) {
     let $divForm = $("<div>");
 
     this._querySet.deref().getForm({
@@ -1280,7 +1280,7 @@ export default class SdcModel {
    * @param {object} options
    * @returns {*}
    */
-  namedForm({formName, cbResolve = null, cbReject = null}) {
+  namedForm({ formName, cbResolve = null, cbReject = null }) {
     let $divForm = $('<div  class="container-fluid">');
 
     this._querySet.deref().getForm({
@@ -1318,6 +1318,9 @@ export default class SdcModel {
     const {
       type
     } = config;
+    if (value === null) {
+      return null;
+    }
 
     switch (type) {
       case "CharField":

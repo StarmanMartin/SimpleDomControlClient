@@ -356,7 +356,7 @@ export function setValueInField(formItem, value) {
   if (name && name !== "") {
 
     if (type === "checkbox") {
-      formItem.checked = value;
+      formItem.checked = !!value;
     } else if (type === "file") {
       if (value instanceof File) {
         if (typeof DataTransfer !== "undefined") {
@@ -370,6 +370,9 @@ export function setValueInField(formItem, value) {
     } else if (value instanceof SdcQuerySet) {
       $(formItem).val(`[${value.getIds().join(',')}]`);
     } else {
+      if (value === null) {
+        value = "";
+      }
       $(formItem).val(value);
     }
   }
