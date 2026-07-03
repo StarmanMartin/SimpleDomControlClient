@@ -150,7 +150,7 @@ export class SdcQuerySet {
    */
   setIds(ids) {
 
-    if (ids === null || Array.isArray(ids) && ids.length === 0) {
+    if (ids === null || ids === "" || Array.isArray(ids) && ids.length === 0) {
       this.valuesList = [];
       return this.valuesList;
     } else if (ids instanceof SdcQuerySet) {
@@ -171,7 +171,7 @@ export class SdcQuerySet {
       if (!tempNumList.some(Number.isNaN)) {
         numList = tempNumList;
       }
-    } else if (ids instanceof String) {
+    } else if (typeof ids === "string") {
       const tempNumList = ids.split(',').map((x) => parseInt(x));
       if (!tempNumList.some(Number.isNaN)) {
         numList = tempNumList
@@ -943,6 +943,9 @@ export class SdcQuerySet {
     const newModels = []
     for (const x of results) {
       const ModelClass = getModel(this.modelName);
+      if(!ModelClass) {
+        throw new Error(`${this.modelName} is no SdcModel. mybe the models ar not importad.`);
+      }
       const newModel = new ModelClass({'id': x.pk ?? x.id, ...x.fields});
       const currentModel = this.byId(newModel.id);
       if (currentModel) {
@@ -1221,7 +1224,7 @@ export default class SdcModel {
    * @param {object} options
    * @returns {*}
    */
-  form({cbResolve = null, cbReject = null}) {
+  form({cbResolve = null, cbReject = null} = {}) {
     if (this.id === null || this.id === -1) {
       return this._createForm({cbReject, cbResolve});
     }
@@ -1420,7 +1423,7 @@ function validateField(value, config) {
     }
   }
 
-  if (value === null || value === undefined) {
+  if (value === null || value === undefined || value === "") {
     return null;
   }
 
