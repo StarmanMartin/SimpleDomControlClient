@@ -6,6 +6,13 @@ import { trigger } from "./sdc_events.js";
 const MAX_FILE_UPLOAD = 25000;
 const CONNECTING_REQUEST_ID = "_connecting_process";
 
+const cloneObject = (original) => {
+  return Object.assign(
+    Object.create(Object.getPrototypeOf(original)),
+    structuredClone(original)
+  );
+}
+
 class SdcModelError extends Error {
   constructor(props) {
     if (typeof props === 'string') {
@@ -149,16 +156,31 @@ export class SdcQuerySet {
    * @param {Array<integr|string>|integer|SdcModel|SdcQuerySet|string} ids
    */
   setIds(ids) {
+    const vl = this._setIds(ids);
+    const filter = {
+      id__in: vl.map((x) => x.id)
+    }
+
+    this.setFilter(filter);
+    return vl;
+  }
+
+  /**
+   *
+   *
+   * @param {Array<integr|string>|integer|SdcModel|SdcQuerySet|string} ids
+   */cloneObject
+  _setIds(ids) {
 
     if (ids === null || ids === "" || Array.isArray(ids) && ids.length === 0) {
       this.valuesList = [];
       return this.valuesList;
     } else if (ids instanceof SdcQuerySet) {
-      this.valuesList = structuredClone(ids.valuesList);
+      this.valuesList = ids.valuesList.map(cloneObject);
       this.valuesList.forEach(value => value._setQuerySet(this, true));
       return this.valuesList;
     } else if (ids instanceof SdcModel) {
-      this.valuesList = [structuredClone(ids)];
+      this.valuesList = [cloneObject(ids)];
       this.valuesList.forEach(value => value._setQuerySet(this, true));
       return this.valuesList;
     }
@@ -181,8 +203,11 @@ export class SdcQuerySet {
     }
 
     if (!Number.isNaN(numId)) {
-      const newModel = this.new();
-      newModel.id = numId;
+      this.valuesList = this.valuesList.filter((item) => numId === item.id);
+      if (this.valuesList.length === 0) {
+        const newModel = this.new();
+        newModel.id = numId;
+      }
     } else if (numList) {
       this.valuesList = this.valuesList.filter((item) => numList.includes(item.id));
       const valueIds = this.getIds();
@@ -269,7 +294,7 @@ export class SdcQuerySet {
    */
   update({ modelQuery = null, item = null }) {
     this.modelQuery = modelQuery ?? this.modelQuery;
-    let loadQuery = item ? { pk: item.id } : this.modelQuery;
+    let loadQuery = item ? { id: item.id } : this.modelQuery;
     return this._sendLoad(loadQuery);
   }
 
@@ -279,28 +304,30 @@ export class SdcQuerySet {
    * @param elem {SdcModel}
    * @returns {Promise<unknown>}
    */
-  delete({ pk = null, elem = null }) {
+  delete({ pk = null, id = null, elem = null }) {
+    pk ??= id;
     pk = !elem ? pk : elem.id;
     if (pk === null) {
       throw new Error("pk or elem must be set");
     }
-    const id = uuidv4();
+    const event_id = uuidv4();
     return this.isConnected().then(() => {
       return new Promise((resolve, reject) => {
         this.socket.send(
           JSON.stringify({
             event: "model",
             event_type: "delete",
-            event_id: id,
+            event_id,
             args: {
               model_name: this.modelName,
               model_query: this.modelQuery,
-              pk,
+              id: pk,
+              pk
             },
           }),
         );
 
-        this.openRequest[id] = [resolve, reject];
+        this.openRequest[event_id] = [resolve, reject];
       });
     });
   }
@@ -312,13 +339,13 @@ export class SdcQuerySet {
    */
   _sendLoad(loadQuery = null) {
     return this.isConnected().then(() => {
-      const id = uuidv4();
+      const event_id = uuidv4();
       return new Promise((resolve, reject) => {
         this.socket.send(
           JSON.stringify({
             event: "model",
             event_type: "load",
-            event_id: id,
+            event_id,
             args: {
               model_name: this.modelName,
               model_query: loadQuery ?? this.modelQuery,
@@ -326,7 +353,7 @@ export class SdcQuerySet {
           }),
         );
 
-        this.openRequest[id] = [(data) => {
+        this.openRequest[event_id] = [(data) => {
           this.loaded = true;
           resolve(data);
         }, reject];
@@ -371,12 +398,12 @@ export class SdcQuerySet {
        }) {
     let $divList = $('<div class="container-fluid">');
     this.isConnected().then(() => {
-      const id = uuidv4();
+      const event_id = uuidv4();
       this.socket.send(
         JSON.stringify({
           event: "model",
           event_type: eventType,
-          event_id: id,
+          event_id,
           args: {
             view_name: viewName,
             model_name: this.modelName,
@@ -386,7 +413,7 @@ export class SdcQuerySet {
         }),
       );
 
-      this.openRequest[id] = [
+      this.openRequest[event_id] = [
         (data) => {
           $divList.append(data.html);
           app.refresh($divList);
@@ -409,30 +436,33 @@ export class SdcQuerySet {
    */
   _sendDetailView({
                     pk = null,
+                    id = null,
                     cbResolve = null,
                     cbReject = null,
                     templateContext = {},
                   }) {
+    pk ??= id;
     pk = normalizePk(pk);
     let $divList = $('<div class="container-fluid">');
 
     this.isConnected().then(() => {
-      const id = uuidv4();
+      const event_id = uuidv4();
       this.socket.send(
         JSON.stringify({
           event: "model",
           event_type: "detail_view",
-          event_id: id,
+          event_id,
           args: {
             model_name: this.modelName,
             model_query: this.modelQuery,
+            id: pk,
             pk,
             template_context: templateContext,
           },
         }),
       );
 
-      this.openRequest[id] = [
+      this.openRequest[event_id] = [
         (data) => {
           $divList.append(data.html);
           app.refresh($divList);
@@ -453,18 +483,24 @@ export class SdcQuerySet {
    *
    * @param {string} eventType
    * @param {SdcModel} modelObj
+   * @param formName
+   * @param $divForm
+   * @param cbResolve
+   * @param cbReject
+   * @param formId
    */
   getForm({ modelObj, eventType, formName, $divForm, cbResolve, cbReject, formId }) {
-    const id = uuidv4();
+    const event_id = uuidv4();
     const pk = modelObj.id ?? -1;
     this.isConnected().then(() => {
       this.socket.send(
         JSON.stringify({
           event: "model",
           event_type: eventType,
-          event_id: id,
+          event_id,
           args: {
             model_name: this.modelName,
+            id: pk,
             pk,
             form_name: formName,
           },
@@ -474,7 +510,7 @@ export class SdcQuerySet {
 
     const className = pk === null || pk === -1 ? "create" : "edit";
 
-    this.openRequest[id] = [
+    this.openRequest[event_id] = [
       (data) => {
         $divForm.append(data.html);
         let $form = $divForm
@@ -508,7 +544,10 @@ export class SdcQuerySet {
    */
   async get(modelQuery = null, doNotLoad = false) {
     if (doNotLoad) {
-      const id = modelQuery?.id ?? modelQuery?.pk;
+      const id = modelQuery?.id ?? this.modelQuery?.id;
+      if(modelQuery) {
+        this.setFilter(modelQuery);
+      }
       return this.byId(id) ?? this.new(modelQuery || this.modelQuery);
     }
     await this.load(modelQuery);
@@ -516,12 +555,14 @@ export class SdcQuerySet {
       throw new Error(`model query returns ${this.length} but only 1 expected.`);
     }
 
+    this.addFilter({ id: this.valuesList[0].id });
+
     return this.valuesList[0];
   }
 
   detailView({ pk, cbResolve = null, cbReject = null, templateContext = {} }) {
     return this._sendDetailView({
-      pk,
+      id: pk,
       cbResolve,
       cbReject,
       templateContext,
@@ -537,7 +578,8 @@ export class SdcQuerySet {
     });
   }
 
-  save({ pk = null, formName = "edit_form", data = null } = {}) {
+  save({ pk = null, id = null, formName = "edit_form", data = null } = {}) {
+    pk ??= id;
     const normPk = normalizePk(pk);
     return this.isConnected().then(() => {
       let elemList;
@@ -552,29 +594,30 @@ export class SdcQuerySet {
       }
       let pList = [];
       elemList.forEach((elem) => {
-        const id = uuidv4();
+        const event_id = uuidv4();
         pList.push(
           new Promise((resolve, reject) => {
             this._readFiles(elem).then((files) => {
               const sendData = data ? { ...data } : elem.serialize();
-              sendData.pk = elem.id;
+              sendData.id = elem.id;
               this.socket.send(
                 JSON.stringify({
                   event: "model",
                   event_type: "save",
-                  event_id: id,
+                  event_id,
                   args: {
                     form_name: formName,
                     model_name: this.modelName,
                     model_query: this.modelQuery,
                     data: sendData,
-                    pk: sendData.pk,
+                    id: sendData.id,
+                    pk: sendData.id,
                     files: files,
                   },
                 }),
               );
 
-              this.openRequest[id] = [
+              this.openRequest[event_id] = [
                 (res) => {
                   let data =
                     typeof res.data.instance === "string"
@@ -601,7 +644,7 @@ export class SdcQuerySet {
    * @returns {Promise<unknown>}
    */
   create({ elem = null, data = null } = {}) {
-    const id = uuidv4();
+    const event_id = uuidv4();
     if (!elem) {
       elem = this.new(data);
     }
@@ -612,7 +655,7 @@ export class SdcQuerySet {
             JSON.stringify({
               event: "model",
               event_type: "create",
-              event_id: id,
+              event_id,
               args: {
                 model_name: this.modelName,
                 model_query: this.modelQuery,
@@ -622,14 +665,14 @@ export class SdcQuerySet {
             }),
           );
 
-          this.openRequest[id] = [
+          this.openRequest[event_id] = [
             (res) => {
               let data =
                 typeof res.data.instance === "string"
                   ? JSON.parse(res.data.instance)
                   : res.data.instance;
               if (elem) {
-                elem.id = data[0]?.pk || data[0]?.id;
+                elem.id = data[0]?.id || data[0]?.pk;
               }
               res.data.instance = this._parseServerRes(data)[0];
               resolve(res);
@@ -716,14 +759,14 @@ export class SdcQuerySet {
       if (value instanceof File) {
         toSolve.push(
           new Promise(async (resolve, reject) => {
-            const id = uuidv4();
-            this.openRequest[id] = [resolve, reject];
+            const event_id = uuidv4();
+            this.openRequest[event_id] = [resolve, reject];
 
             const buffer = await value.arrayBuffer();
             let result = new Uint8Array(buffer);
             let numberOfChunks = Math.ceil(result.length / MAX_FILE_UPLOAD);
             files[key] = {
-              id: id,
+              id: event_id,
               file_name: value.name,
               field_name: key,
               content_length: value.size,
@@ -737,7 +780,7 @@ export class SdcQuerySet {
                 JSON.stringify({
                   event: "model",
                   event_type: "upload",
-                  event_id: id,
+                  event_id,
                   args: {
                     chunk,
                     idx: i,
@@ -916,13 +959,13 @@ export class SdcQuerySet {
    * @returns {Promise<*>}
    */
   _checkConnection() {
-    const id = uuidv4();
+    const event_id = uuidv4();
     return new Promise((resolve, reject) => {
       this.socket.send(
         JSON.stringify({
           event: "model",
           event_type: "connect",
-          event_id: id,
+          event_id,
           args: {
             model_name: this.modelName,
             model_query: this.modelQuery,
@@ -930,7 +973,7 @@ export class SdcQuerySet {
         }),
       );
 
-      this.openRequest[id] = [resolve, reject];
+      this.openRequest[event_id] = [resolve, reject];
     });
   }
 
@@ -946,7 +989,7 @@ export class SdcQuerySet {
       if (!ModelClass) {
         throw new Error(`${this.modelName} is no SdcModel. mybe the models ar not importad.`);
       }
-      const newModel = new ModelClass({ 'id': x.pk ?? x.id, ...x.fields });
+      const newModel = new ModelClass({ 'id': x.id ?? x.pk, ...x.fields });
       const currentModel = this.byId(newModel.id);
       if (currentModel) {
         currentModel.setValues(newModel);
@@ -1039,6 +1082,10 @@ export default class SdcModel {
     this.loaded = isLoaded;
   }
 
+  get querySet() {
+    return this._querySet.deref();
+  }
+
   save({ formName = "edit_form", data = null } = {}) {
     return this._querySet.deref().save({ pk: this.id, formName, data });
   }
@@ -1055,12 +1102,20 @@ export default class SdcModel {
     return this._querySet.deref().update({ item: this });
   }
 
+  update() {
+    return this.load();
+  }
+
   get id() {
     return this._id;
   }
 
-  set pk(data) {
+  set id(data) {
     this._id = data;
+  }
+
+  set pk(data) {
+    this.id = data;
   }
 
   get pk() {
@@ -1316,10 +1371,18 @@ export default class SdcModel {
    */
   parseValue(value, config) {
     const {
-      type
+      type,
+      many_to_many: manyToMany,
+      one_to_many: oneToMany,
+      many_to_one: manyToOne,
+      one_to_one: oneToOne,
     } = config;
     if (value === null) {
       return null;
+    }
+
+    if ((manyToMany || oneToMany || manyToOne || oneToOne) && value && typeof value === 'string') {
+      return JSON.parse(value);
     }
 
     switch (type) {
@@ -1336,10 +1399,7 @@ export default class SdcModel {
 
       case "FloatField":
       case "DecimalField":
-        if (typeof value !== "number") {
-          return "Must be a number";
-        }
-        break;
+        return parseFloat(value);
 
       case "BooleanField":
         return !!value;
@@ -1432,6 +1492,13 @@ function validateField(value, config) {
 
   if (manyToMany || oneToMany || manyToOne || oneToOne) {
     if (!(value instanceof SdcQuerySet) || value.modelName !== relatedModel) {
+      if(typeof value === 'string') {
+        value = JSON.parse(value);
+      }
+
+      if ((manyToMany || manyToOne) && Array.isArray(value) && value.some((x) => !Number.isNaN(parseInt(x)))) {
+        return null;
+      }
       if (typeof value !== "object" && Number.isNaN(parseInt(value))) {
         return "Must be object or ID";
       }
@@ -1453,14 +1520,14 @@ function validateField(value, config) {
     case "IntegerField":
     case "AutoField":
     case "BigIntegerField":
-      if (!Number.isInteger(value)) {
+      if (!isFinite(parseInt(value))) {
         return "Must be an integer";
       }
       break;
 
     case "FloatField":
     case "DecimalField":
-      if (typeof value !== "number") {
+      if (!isFinite(parseFloat(value))) {
         return "Must be a number";
       }
       break;

@@ -104,11 +104,13 @@ export async function get_controller(
   for (const [key, value] of Object.entries(init_arguments)) {
     $controller.data(key, value);
   }
-  const $divContainer = $("<div></div>").append($controller);
+  const $divContainer = $("<div></div>").append($controller)
 
   $body.append($divContainer);
   app._isInit = false;
   app.cleanCache();
   await app.init_sdc();
-  return app.getController($controller);
+  const controller = app.getController($controller);
+  controller.navControllerPath = [tag_name]
+  return controller;
 }

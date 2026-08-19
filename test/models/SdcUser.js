@@ -38,7 +38,7 @@ export default class SdcUser extends SdcModel {
 
   setValues(data = {}) {
     try {
-      this.id = data.id ?? data.pk ?? null;
+      this.id = data.id ?? data.id ?? null;
     } catch {}
     try {
       this.username = data.username ?? null;

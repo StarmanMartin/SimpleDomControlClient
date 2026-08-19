@@ -75,7 +75,11 @@ function replacePlaceholderController(controller, url, urlValues) {
     if (controller._urlParams.hasOwnProperty(key_idx)) {
       let key = controller._urlParams[key_idx];
       let re = RegExp("%\\(" + key + "\\)\\w", "gm");
-      url = url.replace(re, "" + urlValues.shift());
+      const val = urlValues[key];
+      if(!val) {
+        console.warn(`${key} is not set for controller ${ controller._tagName }`);
+      }
+      url = url.replace(re, val);
     }
   }
 
@@ -164,14 +168,14 @@ function parseContentUrl(controller) {
     }
   }
 
-  let params = getUrlParam(controller, controller.$container);
+  let { args, params } = getUrlParam(controller, controller.$container);
   if (controller._urlParams.length) {
     url = replacePlaceholderController(controller, url, params);
   }
 
   controller.parsedContentUrl = url;
 
-  return { url: url, args: params[params.length - 1] };
+  return { url: url, args };
 }
 
 /**
@@ -262,6 +266,7 @@ function runReplaceTagElementsInContainer(
   if (controller) {
     return replaceAllTagElementsInContainer($element, controller, process);
   }
+
 
   controller = controllerFactory(
     parentController,
@@ -378,7 +383,7 @@ function _reloadMethodHTML(controller, $dom, process) {
       }
 
       if (typeof result === "function") {
-        const newData = prepareData($this.data());
+        const newData = prepareData($this.data(), controller);
         result = result.bind(controller)(newData);
       }
       if (result) {

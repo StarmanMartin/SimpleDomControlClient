@@ -117,7 +117,7 @@ function webpack_series_factory(webpack_task) {
 
 exports.sdc_webpack_series_factory = webpack_series_factory
 
-exports.sdc_watch_webpack_factory = (webpack_task) => {
+exports.sdc_watch_webpack_factory = (webpack_task, cb) => {
   return function () {
     // const watcher = chokidar.watch('./src/**/*.js', {followSymlinks: true});
 
@@ -129,6 +129,7 @@ exports.sdc_watch_webpack_factory = (webpack_task) => {
     watcher.on('change', (a) => {
       console.log(`${a} has changed! javascript is recompiling...`);
       webpack_series_factory(webpack_task)();
+      cb && cb();
     });
   };
 };

@@ -50,7 +50,7 @@ function postCallServer(parsedContentUrl, funcName, args) {
       return data;
     })
     .catch((res) => {
-      const data = res.responseJSON;
+      const data = res.responseJSON || {};
       data.is_error = true;
       _handle_response(data);
       throw res;

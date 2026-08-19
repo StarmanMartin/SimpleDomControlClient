@@ -38,16 +38,16 @@ class MockModelSocketServer {
   constructor() {
     this.records = {
       Author: [
-        { pk: 1, id: 1, fields: {name: "Ada Lovelace", age: 36, book_set: [11]} },
-        { pk: 2, id: 2, fields: {name: "Grace Hopper", age: 85, book_set: [21, 22]} },
+        { id: 1, pk: 1, fields: {name: "Ada Lovelace", age: 36, book_set: [11]} },
+        { id: 2, pk: 2, fields: {name: "Grace Hopper", age: 85, book_set: [21, 22]} },
       ],
       Book: [
-        { pk: 11, id: 11, fields: {title: "Notes", author: 1 }},
-        { pk: 21, id: 21, fields: {title: "Compiler Notes", author: 2 }},
-        { pk: 22, id: 22, fields: {title: "COBOL", author: 2 }},
+        { id: 11, pk: 11, fields: {title: "Notes", author: 1 }},
+        { id: 21, pk: 21, fields: {title: "Compiler Notes", author: 2 }},
+        { id: 22, pk: 22, fields: {title: "COBOL", author: 2 }},
       ],
       BookContent: [],
-      SdcUser: [{ pk: 7, id: 7, fields: {username: "tester" }}],
+      SdcUser: [{ id: 7, pk: 7, fields: {username: "tester" }}],
     };
   }
 
@@ -111,7 +111,7 @@ class MockModelSocketServer {
 
   saveRow(modelName, data) {
     const records = this.records[modelName];
-    const id = data.pk ?? data.id;
+    const id = data.id ?? data.id;
     const idx = records.findIndex((row) => row.id === id);
 
     records[idx].fields = {
@@ -294,12 +294,10 @@ describe("model fixtures", () => {
     expect(books.socket.sentMessages.at(-1)).toMatchObject({
       event_type: "save",
       args: {
-        pk: 21,
         data: {
           id: 21,
           title: "Compiler Notes Revised",
-          author: 2,
-          pk: 21,
+          author: 2
         },
       },
     });

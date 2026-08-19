@@ -39,9 +39,6 @@ export class TestCtrA extends AbstractSDC {
     sayB() {
         return 'B'
     }
-
-    onInit() {
-    }
 }
 
 export class TestList extends AbstractSDC {
@@ -52,11 +49,12 @@ export class TestList extends AbstractSDC {
         this.number = 0;
     }
 
-    onInit(number = 10) {
+    onInit({ number = 10 }) {
         this.number = number;
     }
 
     onLoad(html) {
+        this.onInit(this.params)
         $(html).append('<div><this.listview></this.listview></div>');
         return super.onLoad(html);
     }
@@ -78,11 +76,12 @@ export class TestItem extends AbstractSDC {
         this.events.unshift({});
     }
 
-    onInit(idx) {
+    onInit({ idx }) {
         this.idx = idx;
     }
 
     onLoad(html) {
+        this.onInit(this.params);
         $(html).append(`<input name="i_${this.idx}" />`);
         return super.onLoad(html);
     }

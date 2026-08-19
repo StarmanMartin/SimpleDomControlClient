@@ -149,6 +149,7 @@ describe('Controller reconcile', () => {
         await new Promise((resolve) => setTimeout(resolve, 1000))
         const newList = $('body').find('input').toArray();
         expect(newList.length).toBe(5);
+
         newList.forEach((x, i) => {
             expect(x).toBe(oldList[i]);
         });

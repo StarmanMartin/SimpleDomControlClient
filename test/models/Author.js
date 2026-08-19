@@ -66,7 +66,7 @@ export default class Author extends SdcModel {
   }
 
   setValues(data = {}) {
-    data.id ??= data.pk ?? null;
+    data.id ??= data.id ?? null;
     try {
     this.book_set.setFilter({ author:  data.id });
     this.book_set = data.book_set || [];

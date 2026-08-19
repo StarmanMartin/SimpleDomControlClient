@@ -52,7 +52,7 @@ export default class Book extends SdcModel {
   }
 
   setValues(data = {}) {
-    data.id ??= data.pk ?? null;
+    data.id ??= data.id ?? null;
     try {
       this.id = data.id ?? null;
     } catch {} 

@@ -19,6 +19,7 @@ export class AbstractSDC {
     this.load_async = false;
     this._isEventsSet = false;
     this._allEvents = null;
+    this._params = {};
 
     this._urlParams = [];
     this._models = [];
@@ -66,6 +67,14 @@ export class AbstractSDC {
      * @type {boolean}
      */
     this._isMixin = false;
+  }
+
+  get params() {
+    return this._params;
+  }
+
+  set params(params) {
+    this._params = params;
   }
 
   /**
