@@ -248,7 +248,7 @@ export class AbstractSDC {
   }
 
   newModel(modelName, modelQuery = {}) {
-    console.warn("newModel is deprecated and will soon be removed");
+    console.warn("newModel is deprecated and will soon be removed. Please use this.querySet(modelName, modelQuery)");
     return this.querySet(modelName, modelQuery);
   }
 
