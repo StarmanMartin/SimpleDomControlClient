@@ -1,16 +1,21 @@
 'use strict'
 
 const gulp = require('gulp');
-const webpack = require('webpack-stream');
-var named = require('vinyl-named');
+const webpack = require('webpack');
 
-function javascript() {
+function javascript(done) {
     const webpack_config = (process.env.NODE_ENV === 'development' ? './webpack.config/webpack.development.config.cjs' : './webpack.config/webpack.production.config.cjs');
 
-    return gulp.src('./src/index.js')
-        .pipe(named())
-        .pipe(webpack(require(webpack_config)))
-        .pipe(gulp.dest('./dist'));
+    const config = Object.assign({entry: {index: './src/index.js'}}, require(webpack_config));
+
+    webpack(config, (err, stats) => {
+        if (err) {
+            return done(err);
+        }
+
+        console.log(stats.toString({colors: true, chunks: false}));
+        return done(stats.hasErrors() ? new Error('webpack build failed') : undefined);
+    });
 }
 
 

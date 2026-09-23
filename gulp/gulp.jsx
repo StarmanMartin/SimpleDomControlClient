@@ -1,7 +1,6 @@
 const sass = require('gulp-sass')(require('sass'));
 const through = require('through2');
 const {src, dest, series, parallel} = require('gulp');
-const gclean = require('gulp-clean');
 const fs = require('fs');
 const exec = require('gulp-exec');
 const dotenv = require("dotenv");
@@ -59,11 +58,7 @@ function pre_compile_javascript() {
 }
 
 function clean(done) {
-  if (fs.existsSync('./_build')) {
-    return src('./_build').pipe(gclean());
-  } else {
-    done()
-  }
+  fs.rm('./_build', {recursive: true, force: true}, done);
 }
 
 function link_files(cb) {

@@ -118,7 +118,12 @@ function loadHTMLFile(controller, args) {
       if (err.status === 301) {
         const data = err.responseJSON;
         trigger("_RedirectOnView", data["url-link"]);
+        if (!contentReload) {
+          controller.autoRedirect = data["url-link"];
+        }
+        return '<p>Redirected</p>';
       }
+      controller.autoRedirect = null;
       if (typeof controller.confirmPageLoaded === "function") {
         trigger("navLoaded", { controller_name: () => err.status });
       }

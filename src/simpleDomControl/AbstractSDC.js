@@ -19,6 +19,7 @@ export class AbstractSDC {
     this.load_async = false;
     this._isEventsSet = false;
     this._allEvents = null;
+    this._autoRedirect = null;
     this._params = {};
 
     this._urlParams = [];
@@ -113,6 +114,14 @@ export class AbstractSDC {
     if (app.DEBUG && !this._isMixin) {
       console.debug(Array.apply(null, arguments), this._tagName);
     }
+  }
+
+  set autoRedirect(url){
+    this._autoRedirect = url;
+  }
+
+  get autoRedirect() {
+    return this._autoRedirect;
   }
 
   get parentController() {

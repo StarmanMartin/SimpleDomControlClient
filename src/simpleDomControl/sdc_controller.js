@@ -229,7 +229,10 @@ export function runControlFlowFunctions(controller, process) {
       return runRefresh(controller, process);
     })
     .catch(function ($html) {
-      return runControllerFillContent(controller, $html);
+      if (typeof $html === 'string' || $html instanceof $) {
+        return runControllerFillContent(controller, $html);
+      }
+      throw $html;
     });
 
   if (controller.load_async) {

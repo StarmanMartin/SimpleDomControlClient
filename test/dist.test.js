@@ -63,7 +63,7 @@ describe('Controller', () => {
         let ctr = new TestCtr();
         ctr.$container = $('<test-ctr></test-ctr>');
         let files = await sdc_view.loadFilesFromController(ctr);
-        expect(ajaxSpy).toBeCalledWith({
+        expect(ajaxSpy).toHaveBeenCalledWith({
             type: 'get',
             url: 'TestCtr',
             data: {
