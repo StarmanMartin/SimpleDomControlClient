@@ -21,7 +21,6 @@ export function prepareData(data, controller = null) {
               {
                 ...fields,
                 id: pk,
-                id: pk,
               },
             ];
           } catch {

@@ -638,12 +638,27 @@ export class SdcQuerySet {
   }
 
   /**
+   * Create a new instance in the DB.
    *
-   * @param elem {?SdcModel}
-   * @param data {?object}
+   * @param {{elem?: SdcModel, data: object} | object} arg
+   *   Either an object containing `data` and optionally `elem`,
+   *   or `data` directly.
+   *
+   * @example
+   * create({ elem, data });
+   * create(data);
    * @returns {Promise<unknown>}
    */
-  create({ elem = null, data = null } = {}) {
+  create(arg = {}) {
+
+    const keys = Object.keys(arg);
+    const isNotOnlyData =
+      keys.length <= 2 &&
+      keys.includes('data') &&
+      (keys.length === 1 ||
+      keys.includes('elem'));
+    let { elem, data } = isNotOnlyData ? arg : { elem: null, data: arg };
+
     const event_id = uuidv4();
     if (!elem) {
       elem = this.new(data);
@@ -1090,7 +1105,13 @@ export default class SdcModel {
     return this._querySet.deref().save({ pk: this.id, formName, data });
   }
 
-  create({ data = null } = {}) {
+  create(values  = null) {
+    let data;
+    if (!!values && Object.keys(values).length === 1 && Object.keys(values)[0] === 'data') {
+      data = values.data;
+    } else {
+      data = values;
+    }
     return this._querySet.deref().create({ elem: this, data });
   }
 
@@ -1406,7 +1427,7 @@ export default class SdcModel {
 
       case "DateField":
       case "DateTimeField":
-        return Date.parse(value);
+        return new Date(Date.parse(value));
 
       case "URLField":
         return new URL(value);

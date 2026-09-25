@@ -350,12 +350,18 @@ export function getValueFromField(formItem) {
   return null;
 }
 
+function formatDateTimeLocal(date) {
+  const pad = n => String(n).padStart(2, '0');
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 export function setValueInField(formItem, value) {
   let {type, name} = formItem;
   if (name && name !== "") {
-
-    if (type === "checkbox") {
+    if (type === "datetime-local") {
+      formItem.value = formatDateTimeLocal(value);
+    } else if (type === "checkbox") {
       formItem.checked = !!value;
     } else if (type === "file") {
       if (value instanceof File) {

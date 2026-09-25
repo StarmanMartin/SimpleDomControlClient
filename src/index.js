@@ -1,7 +1,8 @@
-import {app} from "./simpleDomControl/sdc_main.js";
-import {AbstractSDC} from "./simpleDomControl/AbstractSDC.js";
-import SdcModel, {SdcQuerySet} from "./simpleDomControl/sdc_model.js";
-import {registerModel} from "./simpleDomControl/sdc_socket.js";
+import { app } from "./simpleDomControl/sdc_main.js";
+import { AbstractSDC } from "./simpleDomControl/AbstractSDC.js";
+import SdcModel, { SdcQuerySet } from "./simpleDomControl/sdc_model.js";
+import { registerModel } from "./simpleDomControl/sdc_socket.js";
+import Cookies from 'js-cookie';
 import {
   on,
   trigger,
@@ -18,7 +19,7 @@ import {
   controllerFactory,
   runControlFlowFunctions,
 } from "./simpleDomControl/sdc_controller.js";
-import {close} from "./simpleDomControl/sdc_server_call.js";
+import { close } from "./simpleDomControl/sdc_server_call.js";
 import {
   get_controller,
   getCsrfToken,
@@ -26,7 +27,20 @@ import {
 } from "./simpleDomControl/sdc_test_utils.js";
 
 const socketReconnect = close;
-const test_utils = {get_controller, getCsrfToken, controllerFromTestHtml};
+const test_utils = {
+  get_controller, getCsrfToken, controllerFromTestHtml,
+  logout: () => {
+     Cookies.set('sessionid', null);
+     console.log(`Logged out`);
+  },
+  login: (user) => {
+    const sessionId = SDC_TEST_USER?.[user] || '';
+    if (sessionId) {
+      console.log(`Logged in as ${user}`);
+    }
+    Cookies.set('sessionid', sessionId);
+  }
+};
 
 export {
   app,
