@@ -4942,6 +4942,7 @@ __metadata:
     through2: "npm:^4.0.2"
     webpack: "npm:^5.104.1"
   peerDependencies:
+    gulp: ^5.0.0
     jquery: ^3.7.0
     lodash: ^4.17.21
   languageName: unknown

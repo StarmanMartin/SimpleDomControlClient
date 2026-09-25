@@ -6,6 +6,7 @@
   "files": [
     "dist",
     "src",
+    "gulp",
     "README.md",
     "CHANGELOG.md"
   ],
@@ -35,21 +36,16 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "baseline-browser-mapping": "^2.9.19",
-    "dotenv": "^16.4.7",
     "eslint": "^10.8.1",
     "glob-parent": "^6.0.2",
     "globals": "^15.14.0",
     "gulp": "^5.0.1",
-    "gulp-exec": "^5.0.0",
-    "gulp-sass": "^6.0.1",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
     "jquery": "^3.7.1",
     "lodash": "4.17.23",
     "micromatch": "^4.0.8",
     "prettier": "^3.8.1",
-    "sass": "^1.85.1",
-    "through2": "^4.0.2",
     "webpack": "^5.104.1"
   },
   "overrides": {
@@ -65,9 +61,15 @@
     "test-exclude": "^8.0.0"
   },
   "dependencies": {
-    "js-cookie": "^3.0.8"
+    "dotenv": "^16.4.7",
+    "gulp-exec": "^5.0.0",
+    "gulp-sass": "^6.0.1",
+    "js-cookie": "^3.0.8",
+    "sass": "^1.85.1",
+    "through2": "^4.0.2"
   },
   "peerDependencies": {
+    "gulp": "^5.0.0",
     "jquery": "^3.7.0",
     "lodash": "^4.17.21"
   }

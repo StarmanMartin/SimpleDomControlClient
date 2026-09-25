@@ -11,7 +11,8 @@
 - `DateField` and `DateTimeField` values are now `Date` objects instead of numeric timestamps. Empty or invalid values become `null`. Date-only strings (`YYYY-MM-DD`) are read as local dates.
 - When a model is serialized, `DateField` values are sent as `YYYY-MM-DD` and `DateTimeField` values as ISO 8601 strings.
 - `jquery` and `lodash` are now peer dependencies. They have always been used as the globals `$` and `_`. `bootstrap`, `@popperjs/core` and `esm` are no longer dependencies. Projects created with `sdc_init` already install all of them.
+- `gulp` is now a peer dependency. The build helpers used by `sdc_client/gulp/gulp.jsx` (`gulp-sass`, `sass`, `gulp-exec`, `dotenv`, `through2`) are now regular dependencies.
 
 ### Internal
 - Switched to Yarn 4 with the `node-modules` linker.
-- The published package contains only `dist/`, `src/`, `README.md` and `CHANGELOG.md`.
+- The published package contains only `dist/`, `src/`, `gulp/`, `README.md` and `CHANGELOG.md`.
