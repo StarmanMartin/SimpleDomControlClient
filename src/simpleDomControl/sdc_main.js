@@ -47,7 +47,10 @@ let sdcDomFragment = function (element, props) {
   if (props) {
     Object.entries(props).forEach(([k, v]) => {
       if (k.startsWith("on")) {
-        $new_elem[0].addEventListener(k.substring(2).toLowerCase(), v);
+        const type = k.substring(2).toLowerCase();
+        $new_elem[0].addEventListener(type, v);
+        // Remembered so reconcile() can move the listeners to a node it keeps.
+        ($new_elem[0]._sdcListeners ??= []).push([type, v]);
       } else {
         if (PROPERTIES_UPDATE[k.toLowerCase()]) {
           k = PROPERTIES_UPDATE[k.toLowerCase()];
@@ -75,6 +78,14 @@ window.sdcDom = function (tagName, props, ...children) {
   return $new_elem;
 };
 
+const redirector = (a) => {
+  if (a["url-link"]) {
+    trigger("onNavLink", a["url-link"]);
+  } else {
+    window.location.href = a["url"];
+  }
+};
+
 export let app = {
   CSRF_TOKEN: window.CSRF_TOKEN || "",
   LANGUAGE_CODE: window.LANGUAGE_CODE || "en",
@@ -87,6 +98,7 @@ export let app = {
   _isInit: false,
   _origin_trigger: null,
   _globalControllerClasses: [],
+  _createdGlobals: [],
 
   init_sdc: () => {
     if (!app._isInit) {
@@ -119,8 +131,12 @@ export let app = {
 
     app.tagNames = tagList();
 
+    // Global controllers are created only once, even if init_sdc() is called again.
+    const newGlobals = Global.filter((tagName) => !app._createdGlobals.includes(tagName));
+    app._createdGlobals.push(...newGlobals);
+
     const $globalDiv = $("<div></div>");
-    Global.forEach((tagName) => {
+    newGlobals.forEach((tagName) => {
       const ControllerClass = controllerList[tagName][0];
       $globalDiv.append(
         `<${ControllerClass.prototype._tagName}></${ControllerClass.prototype._tagName}>`,
@@ -169,9 +185,12 @@ export let app = {
    * @param {AbstractSDC} Controller
    */
   registerGlobal: (Controller) => {
-    app.register(Controller);
+    const registration = app.register(Controller);
     let tagName = Controller.prototype._tagName;
-    Global.push(tagName);
+    if (!Global.includes(tagName)) {
+      Global.push(tagName);
+    }
+    return registration;
   },
 
   cleanCache: () => {
@@ -260,14 +279,23 @@ export let app = {
         .then((a, b, c) => {
           resolve(a, b, c);
           if (a.status === "redirect") {
-            trigger("onNavLink", a["url-link"]);
+            redirector(a);
           } else {
             p.then(() => {
               app.refresh(controller.$container);
             });
           }
         })
-        .catch(reject);
+        .catch((a, b, c) => {
+          // send_redirect() answers with HTTP 301 and the redirect in the JSON body.
+          if (a.status === 301 && a.responseJSON) {
+            a = a.responseJSON;
+            redirector(a);
+            resolve(a, b, c);
+          } else {
+            reject(a, b, c);
+          }
+        });
     });
 
     return p;
@@ -275,13 +303,6 @@ export let app = {
 
   submitFormAndUpdateView: (controller, form, url, method) => {
     let formData = new FormData(form);
-    const redirector = (a) => {
-      if (a["url-link"]) {
-        trigger("onNavLink", a["url-link"]);
-      } else {
-        window.location.href = a["url"];
-      }
-    };
 
     const p = new Promise((resolve, reject) => {
       uploadFileFormData(formData, url || form.action, method || form.method)

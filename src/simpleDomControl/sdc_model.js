@@ -6,11 +6,15 @@ import { trigger } from "./sdc_events.js";
 const MAX_FILE_UPLOAD = 25000;
 const CONNECTING_REQUEST_ID = "_connecting_process";
 
-const cloneObject = (original) => {
-  return Object.assign(
-    Object.create(Object.getPrototypeOf(original)),
-    structuredClone(original)
-  );
+/**
+ * Copy a model instance for another queryset. A new instance of the same class is
+ * created from the serialized field values (structuredClone cannot copy the
+ * WeakRef/Proxy members of a model).
+ */
+const cloneModel = (original) => {
+  const copy = new original.constructor({});
+  copy.setValues(original.serialize());
+  return copy;
 }
 
 class SdcModelError extends Error {
@@ -132,6 +136,9 @@ export class SdcQuerySet {
     };
     this.onCreate = () => {
     };
+    // Called with the removed models when rows of this queryset are deleted on the
+    // server. If not set, onUpdate is called instead.
+    this.onDelete = null;
 
     return new Proxy(this, {
       get(target, prop) {
@@ -173,6 +180,22 @@ export class SdcQuerySet {
     this.onUpdate = handler;
   }
 
+  set on_delete(handler) {
+    this.onDelete = handler;
+  }
+
+  /**
+   * Remove the models with the given ids from the local list.
+   *
+   * @param {Array<number>} ids
+   * @returns {Array<SdcModel>} the removed models
+   */
+  _removeIds(ids) {
+    const removed = this.valuesList.filter((item) => ids.includes(item.id));
+    this.valuesList = this.valuesList.filter((item) => !ids.includes(item.id));
+    return removed;
+  }
+
   /**
    *
    *
@@ -192,19 +215,25 @@ export class SdcQuerySet {
    *
    *
    * @param {Array<integr|string>|integer|SdcModel|SdcQuerySet|string} ids
-   */cloneObject
+   */
   _setIds(ids) {
 
     if (ids === null || ids === "" || Array.isArray(ids) && ids.length === 0) {
       this.valuesList = [];
       return this.valuesList;
-    } else if (ids instanceof SdcQuerySet) {
-      this.valuesList = ids.valuesList.map(cloneObject);
-      this.valuesList.forEach(value => value._setQuerySet(this, true));
-      return this.valuesList;
-    } else if (ids instanceof SdcModel) {
-      this.valuesList = [cloneObject(ids)];
-      this.valuesList.forEach(value => value._setQuerySet(this, true));
+    } else if (ids instanceof SdcQuerySet || ids instanceof SdcModel) {
+      // Models already in this queryset are kept (so references to them stay valid);
+      // other models are copied into it.
+      const sources = ids instanceof SdcModel ? [ids] : ids.valuesList;
+      this.valuesList = sources.map((source) => {
+        const existing = source.id !== null ? this.byId(source.id) : null;
+        if (existing) {
+          return existing;
+        }
+        const copy = cloneModel(source);
+        copy._setQuerySet(this, true);
+        return copy;
+      });
       return this.valuesList;
     }
 
@@ -350,7 +379,10 @@ export class SdcQuerySet {
           }),
         );
 
-        this.openRequest[event_id] = [resolve, reject];
+        this.openRequest[event_id] = [(res) => {
+          this._removeIds([normalizePk(pk)]);
+          resolve(res);
+        }, reject];
       });
     });
   }
@@ -873,7 +905,7 @@ export class SdcQuerySet {
         this._isConnectingProcess = false;
         this.openRequest[CONNECTING_REQUEST_ID][0](data);
         this._closeOpenRequest(CONNECTING_REQUEST_ID);
-      } else if (["load", "named_view", "detail_view"].includes(data.type)) {
+      } else if (["load", "list_view", "named_view", "detail_view"].includes(data.type)) {
         const jsonRes = JSON.parse(data.args.data);
         data.args.data = await this._parseServerRes(jsonRes);
       } else if (data.type === "on_update" || data.type === "on_create") {
@@ -890,6 +922,11 @@ export class SdcQuerySet {
 
         cb(obj);
         data.args.data = obj;
+      } else if (data.type === "on_delete") {
+        const ids = JSON.parse(data.args.data).map((x) => normalizePk(x.id ?? x.pk));
+        const removed = this._removeIds(ids);
+        (this.onDelete ?? this.onUpdate)(removed);
+        data.args.data = removed;
       }
 
       let instance = data.data?.instance;
@@ -964,9 +1001,12 @@ export class SdcQuerySet {
         }
         this.openRequest = {};
 
+        this._isConnectingProcess = false;
         setTimeout(() => {
-          if (this._autoReconnect) {
-            this._connectToServer().then(() => {
+          if (this._autoReconnect && !this._isConnected) {
+            // isConnected() opens the socket and sends the connect handshake, so
+            // live updates work again and later requests reuse this connection.
+            this.isConnected().catch(() => {
             });
           }
         }, 1000);
@@ -1063,11 +1103,12 @@ export default class SdcModel {
    * @returns {SdcQuerySet}
    */
   static querySet(modelQuerySet = null, parent = null) {
+    const { modelName } = new this({});
     if (!parent) {
-      return new SdcQuerySet(this.modeName, modelQuerySet);
+      return new SdcQuerySet(modelName, modelQuerySet);
     }
 
-    return parent.querySet(this.modeName, modelQuerySet);
+    return parent.querySet(modelName, modelQuerySet);
   }
 
   addForm($form) {
@@ -1089,15 +1130,25 @@ export default class SdcModel {
   _onChange(event) {
     const { name } = event.target;
     if (this.constructor.fields[name]) {
-      this[`set${name}`](getValueFromField(event.target));
+      try {
+        this[`set${name}`](getValueFromField(event.target));
+      } catch {
+        // Invalid input (e.g. an empty required field) is kept in the form and
+        // validated by the server on submit.
+        return;
+      }
+      // Show the new value in the other forms of this model, not in the input being edited.
+      this._updateForm(name, event.target);
     }
   }
 
-  _updateForm(fieldName) {
+  _updateForm(fieldName, skipElement = null) {
     const self = this;
     this._forms.forEach(($form) => {
       $form.find(`[name="${fieldName}"]`).each(function () {
-        setValueInField(this, self[fieldName])
+        if (this !== skipElement) {
+          setValueInField(this, self[fieldName]);
+        }
       });
     });
   }
@@ -1268,7 +1319,8 @@ export default class SdcModel {
     const fields = this.constructor.fields;
     $forms.each(function () {
       const pk = normalizePk($(this).data("model_pk"));
-      if (self.id !== pk) {
+      // Create forms carry model_pk -1 while the new model's id is still null.
+      if (normalizePk(self.id) !== pk) {
         return;
       }
 
@@ -1298,7 +1350,12 @@ export default class SdcModel {
 
     function setValueInForm(name, value) {
       if (!!fields[name]) {
-        self[name] = value;
+        try {
+          self[name] = value;
+        } catch {
+          // Invalid values are still sent to the server, which returns the form
+          // errors; the model keeps its last valid value.
+        }
       }
       returnValue[name] = value;
     }
@@ -1433,14 +1490,21 @@ export default class SdcModel {
 
     switch (type) {
       case "CharField":
-      case "TeextField":
+      case "TextField":
+      case "SlugField":
       case "UUIDField":
       case "EmailField":
         return `${value}`;
 
       case "IntegerField":
-      case "AutoField":
+      case "SmallIntegerField":
       case "BigIntegerField":
+      case "PositiveIntegerField":
+      case "PositiveSmallIntegerField":
+      case "PositiveBigIntegerField":
+      case "AutoField":
+      case "SmallAutoField":
+      case "BigAutoField":
         return parseInt(value, 10);
 
       case "FloatField":
@@ -1475,14 +1539,7 @@ export default class SdcModel {
         }
 
         if (typeof File !== "undefined" && value instanceof File) {
-          if (config.max_size && value.size > config.max_size) {
-            return `File too large (max ${config.max_size} bytes)`;
-          }
-
-          if (config.allowed_types && !config.allowed_types.includes(value.type)) {
-            return `Invalid file type (${value.type})`;
-          }
-
+          // Size and type are checked in validate().
           return value;
         }
         break;
@@ -1564,8 +1621,14 @@ function validateField(value, config) {
       break;
 
     case "IntegerField":
-    case "AutoField":
+    case "SmallIntegerField":
     case "BigIntegerField":
+    case "PositiveIntegerField":
+    case "PositiveSmallIntegerField":
+    case "PositiveBigIntegerField":
+    case "AutoField":
+    case "SmallAutoField":
+    case "BigAutoField":
       if (!isFinite(parseInt(value))) {
         return "Must be an integer";
       }
@@ -1612,13 +1675,25 @@ function validateField(value, config) {
       break;
 
     case "JSONField":
-      if (typeof value !== "object") {
-        return "Must be JSON object";
+      if (typeof value === "string") {
+        try {
+          JSON.parse(value);
+        } catch {
+          return "Must be valid JSON";
+        }
       }
       break;
     case "FileField":
       if (!FileLoaded.isValid(value) && !(value instanceof File) && !(value instanceof FileLoaded)) {
         return "Must be a valid file";
+      }
+      if (typeof File !== "undefined" && value instanceof File) {
+        if (config.max_size && value.size > config.max_size) {
+          return `File too large (max ${config.max_size} bytes)`;
+        }
+        if (config.allowed_types && !config.allowed_types.includes(value.type)) {
+          return `Invalid file type (${value.type})`;
+        }
       }
       break;
     default:

@@ -46,8 +46,6 @@ function getDomTagParamsWithList($element, controller = null) {
 function reg_runOnInitWithParameter(controller, $element, applyController) {
   if (!controller) {
     return false;
-  } else if (typeof controller.onInit !== "function") {
-    return false;
   }
 
   controller.params = getDomTagParamsWithList(

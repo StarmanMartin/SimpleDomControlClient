@@ -6,7 +6,22 @@ let IS_CONNECTING = false;
 let SDC_SOCKET = null;
 let OPEN_REQUESTS = {};
 
+/**
+ * Server methods receive the arguments as keyword arguments, so they must be an
+ * object. Other values are passed as ``arg0``.
+ */
+function normalizeArgs(args) {
+  if (args === undefined || args === null) {
+    return {};
+  }
+  if (typeof args !== "object" || Array.isArray(args)) {
+    return { arg0: args };
+  }
+  return args;
+}
+
 export function callServer(app, controller, parsedContentUrl, funcName, args) {
+  args = normalizeArgs(args);
   if (window.SERVER_CALL_VIA_WEB_SOCKET) {
     return socketCallServer(app, controller, funcName, args);
   } else {
@@ -29,9 +44,6 @@ export function close() {
 }
 
 function postCallServer(parsedContentUrl, funcName, args) {
-  if (typeof args !== "object" && Array.isArray(args) && args === null) {
-    args = { arg0: args };
-  }
   args = {
     data: JSON.stringify(args),
     _sdc_func_name: funcName,
@@ -145,6 +157,11 @@ function _handle_response(data) {
     }
 
     if (data.type && data.type === "sdc_recall") {
+      // Like over HTTP: msg/header in the return value of the server method show a message.
+      const { data: returnData } = data;
+      if (returnData && typeof returnData === "object" && (returnData.msg || returnData.header)) {
+        trigger("pushMsg", returnData.header || "", returnData.msg || "");
+      }
       if (data.id && OPEN_REQUESTS[data.id]) {
         OPEN_REQUESTS[data.id][0](data.data);
         delete OPEN_REQUESTS[data.id];

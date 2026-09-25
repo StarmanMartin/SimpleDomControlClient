@@ -15,7 +15,6 @@ function checkIfEventFits(ev_type, e, target) {
         target !== elementUnderMouse && !target.contains(elementUnderMouse)
       );
     case "mouseenter":
-    case "mousein":
       elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
       return (
         target !== elementUnderMouse && !target.contains(elementUnderMouse)
@@ -97,10 +96,6 @@ export function initEvents() {
  * @param {AbstractSDC} controller
  */
 export function setControllerEvents(controller) {
-  if (controller._isEventsSet) {
-    return;
-  }
-
   const events = controller.getEvents();
   for (let ev_type in events) {
     if (events.hasOwnProperty(ev_type)) {
@@ -122,6 +117,6 @@ export function setControllerEvents(controller) {
       }
     }
   }
-  // TODO: Is it needed
-  //controller._isEventsSet = true;
+  // Not cached on purpose: a refresh can add new elements that match the selectors,
+  // so the attributes are set again on every refresh (existing entries are skipped).
 }

@@ -74,7 +74,8 @@ export function resetChildren(parentController) {
   parentController.find(`.${CONTROLLER_CLASS}`).each(function () {
     const $this = $(this);
     const cController = getController($this);
-    if (cController === parentController) {
+    // Direct children only: the closest controller around the child element is the parent.
+    if (cController && getController($this.parent()) === parentController) {
       setParentController(parentController, cController);
     }
   });
@@ -254,7 +255,6 @@ export function runRefresh(controller, process) {
 function getParentList(controller) {
   let controllerList = [];
   while (controller) {
-    controller._isEventsSet = false;
     controllerList.unshift(controller);
     controller = controller._parentController;
   }

@@ -1,5 +1,4 @@
 const sass = require('gulp-sass')(require('sass'));
-const through = require('through2');
 const {src, dest, series, parallel} = require('gulp');
 const fs = require('fs');
 const exec = require('gulp-exec');
@@ -17,43 +16,14 @@ function scss(bundle_mode = false) {
 }
 
 /**
- * Precompiler presets properties of the sdc controller.
- * Sets on_init argument names as _on_init_params names list
- * as prototype property to the controller
+ * Copies the client sources (following the linked app directories) to ./_build,
+ * which the bundle tasks use as input.
  *
  * @returns {*}
  */
 function pre_compile_javascript() {
   let fileExtensions = process.env.JS_CILENT_FILE_EXTENTIONS?.split(',') || ['.js', '.json'];
   return src(fileExtensions.map((x) => `./src/**/*${x}`), {follow: true})
-    .pipe(through.obj(function (obj, enc, next) {
-      let srcFile = obj.path
-      if (!obj.isNull() && !obj.isDirectory() && obj.isBuffer() && /.js$/.test(srcFile)) {
-        let file_content = obj.contents.toString().split('\n');
-        let controller_name = null;
-        let on_init_p_name = null;
-        file_content.forEach((element) => {
-          if (!controller_name) {
-            let a = element.match(/class (.*)\s+extends\s*AbstractSDC /);
-            if (a) controller_name = a[1];
-          }
-          if (!on_init_p_name) {
-            let fnStr = element.match(/^\s*(async)?\s*onInit\s*\((.*)\)\s*\{/);
-            if (fnStr) {
-              on_init_p_name = fnStr[2].match(/(?<=^|,\s?)[^=\s,]+/g);
-            }
-          }
-
-
-        });
-        if (file_content && controller_name && on_init_p_name) {
-          file_content.push(`${controller_name}.prototype._on_init_params = function() {return ["${on_init_p_name.join('", "')}"]; };`);
-          obj.contents = Buffer.from(file_content.join('\n'));
-        }
-
-      }
-      next(null, obj);
-    }))
     .pipe(dest('./_build'));
 }
 

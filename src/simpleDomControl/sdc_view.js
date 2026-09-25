@@ -516,7 +516,22 @@ export function reconcile($virtualNode, $realNode) {
   toRemove.forEach(($element) => $element.safeRemove());
 }
 
+/**
+ * Replace the event listeners added by sdcDom (JSX on* props) on a kept node
+ * with the listeners of its new virtual counterpart.
+ */
+function syncListeners(real, virtual) {
+  if (!real || !virtual || (!real._sdcListeners && !virtual._sdcListeners)) {
+    return;
+  }
+  (real._sdcListeners ?? []).forEach(([type, fn]) => real.removeEventListener(type, fn));
+  const listeners = virtual._sdcListeners ?? [];
+  listeners.forEach(([type, fn]) => real.addEventListener(type, fn));
+  real._sdcListeners = listeners;
+}
+
 function syncAttributes($real, $virtual) {
+  syncListeners($real[0], $virtual[0]);
   const realAttrs = $real[0].attributes ?? [];
   const virtualAttrs = $virtual[0].attributes ?? [];
   // Remove missing attrs

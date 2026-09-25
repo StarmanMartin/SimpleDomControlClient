@@ -17,7 +17,6 @@ export class AbstractSDC {
     this.parsedContentUrl = null;
     this.events = [];
     this.load_async = false;
-    this._isEventsSet = false;
     this._allEvents = null;
     this._autoRedirect = null;
     this._params = {};
@@ -107,6 +106,8 @@ export class AbstractSDC {
   }
 
   /**
+   * @deprecated Not called by the runtime since 0.158.7. Read the data-*
+   * attributes from ``this.params`` in ``onLoad()`` instead.
    *
    * @return {Promise<*>|*}
    */
@@ -181,7 +182,6 @@ export class AbstractSDC {
       }
 
       this.$container.remove();
-      delete this;
       return true;
     }
 
@@ -209,7 +209,9 @@ export class AbstractSDC {
       }
     }
 
-    return (this._allEvents = _.merge(...allEvents));
+    // Merge into a new object: the event maps of the controller and its mixins
+    // may be shared between instances and must not be changed.
+    return (this._allEvents = _.merge({}, ...allEvents));
   }
 
   post(url, args) {
@@ -229,8 +231,8 @@ export class AbstractSDC {
     let app = this.contentUrl.match(re);
     if (!app || app.length < 2) {
       console.error(
-        "To use the serverCall function the contentUrl must be set: " +
-        this.name,
+        "To use the serverCall function the contentUrl must contain sdc_view/<app>: " +
+        this._tagName,
       );
       return;
     }
@@ -325,11 +327,13 @@ export class AbstractSDC {
         prom
           .then((res) => {
             clearErrorsInForm($form);
+            // save() resolves with a list of responses, create() with one response.
+            const response = Array.isArray(res) ? res[0] : res;
             this.submit_model_form_success &&
-            this.submit_model_form_success(res[0]);
+            this.submit_model_form_success(response);
             for (const controller of this.iterateAllChildren()) {
               controller.submit_model_form_success &&
-              controller.submit_model_form_success(res[0]);
+              controller.submit_model_form_success(response);
             }
 
             resolve(res);
