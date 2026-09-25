@@ -327,4 +327,40 @@ describe("model fixtures", () => {
       },
     });
   });
+  test("queryset create accepts plain data", async () => {
+    const books = new Author({ id: 2 }).book_set;
+
+    const response = await books.create({ title: "Plain Data", author: 2 });
+
+    expect(response.data.instance.title).toBe("Plain Data");
+    expect(books.socket.sentMessages.at(-1).args.data).toMatchObject({
+      title: "Plain Data",
+      author: 2,
+    });
+  });
+
+  test("queryset create accepts elem and data together", async () => {
+    const books = new Author({ id: 2 }).book_set;
+    const newBook = new Book({ title: "Ignored" });
+
+    const response = await books.create({
+      elem: newBook,
+      data: { title: "From Data", author: 2 },
+    });
+
+    expect(response.data.instance.title).toBe("From Data");
+    expect(newBook.id).toBe(response.data.instance.id);
+  });
+
+  test("model create accepts both {data} and plain data", async () => {
+    const books = new Author({ id: 2 }).book_set;
+    const first = books.new({ title: "First", author: 2 });
+    const second = books.new({ title: "Second", author: 2 });
+
+    await first.create({ data: { title: "First", author: 2 } });
+    expect(books.socket.sentMessages.at(-1).args.data).toMatchObject({ title: "First", author: 2 });
+
+    await second.create({ title: "Second", author: 2 });
+    expect(books.socket.sentMessages.at(-1).args.data).toMatchObject({ title: "Second", author: 2 });
+  });
 });

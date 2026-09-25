@@ -1,4 +1,4 @@
-import { getValueFromField, setValueInField, uuidv4 } from "./sdc_utils.js";
+import { formatDate, getValueFromField, setValueInField, toDate, uuidv4 } from "./sdc_utils.js";
 import { getModel } from "./sdc_socket.js"
 import { app } from "./sdc_main.js";
 import { trigger } from "./sdc_events.js";
@@ -80,6 +80,29 @@ class FileLoaded {
 function normalizePk(pk) {
   const normalizedPk = parseInt(pk ?? -1, 10);
   return Number.isNaN(normalizedPk) ? -1 : normalizedPk;
+}
+
+/**
+ * Decide whether an argument of `create()` is an options object
+ * (`{elem, data}`) or the data itself. It is treated as options if it is
+ * a non-empty plain object whose keys are only `elem` and/or `data`, and
+ * `elem` (if present) is an SdcModel.
+ *
+ * @param {*} arg
+ * @returns {boolean}
+ */
+function isCreateOptions(arg) {
+  if (!arg || typeof arg !== "object" || arg instanceof SdcModel) {
+    return false;
+  }
+  const keys = Object.keys(arg);
+  if (keys.length === 0 || !keys.every((k) => k === "elem" || k === "data")) {
+    return false;
+  }
+  if ("elem" in arg && arg.elem !== null && !(arg.elem instanceof SdcModel)) {
+    return false;
+  }
+  return !("data" in arg) || arg.data === null || typeof arg.data === "object";
 }
 
 export class SdcQuerySet {
@@ -640,24 +663,21 @@ export class SdcQuerySet {
   /**
    * Create a new instance in the DB.
    *
-   * @param {{elem?: SdcModel, data: object} | object} arg
-   *   Either an object containing `data` and optionally `elem`,
+   * @param {{elem?: SdcModel, data?: object} | object} arg
+   *   Either an options object containing `elem` and/or `data`,
    *   or `data` directly.
    *
    * @example
    * create({ elem, data });
+   * create({ elem });
    * create(data);
    * @returns {Promise<unknown>}
    */
-  create(arg = {}) {
-
-    const keys = Object.keys(arg);
-    const isNotOnlyData =
-      keys.length <= 2 &&
-      keys.includes('data') &&
-      (keys.length === 1 ||
-      keys.includes('elem'));
-    let { elem, data } = isNotOnlyData ? arg : { elem: null, data: arg };
+  create(arg = null) {
+    let { elem = null, data = null } = isCreateOptions(arg) ? arg : { data: arg };
+    if (data && typeof data === "object" && Object.keys(data).length === 0) {
+      data = null;
+    }
 
     const event_id = uuidv4();
     if (!elem) {
@@ -1105,13 +1125,15 @@ export default class SdcModel {
     return this._querySet.deref().save({ pk: this.id, formName, data });
   }
 
-  create(values  = null) {
-    let data;
-    if (!!values && Object.keys(values).length === 1 && Object.keys(values)[0] === 'data') {
-      data = values.data;
-    } else {
-      data = values;
-    }
+  /**
+   * Create this instance in the DB.
+   *
+   * @param {{data?: object} | object | null} values
+   *   Either `{ data }` or `data` directly.
+   * @returns {Promise<unknown>}
+   */
+  create(values = null) {
+    const data = isCreateOptions(values) ? (values.data ?? null) : values;
     return this._querySet.deref().create({ elem: this, data });
   }
 
@@ -1180,6 +1202,9 @@ export default class SdcModel {
         }
       } else if (val.is_relation && value instanceof SdcModel) {
         acc[key] = value.id ?? null;
+      } else if (value instanceof Date) {
+        // Django's DateField does not accept a full ISO datetime.
+        acc[key] = val.type === "DateField" ? formatDate(value) : value.toISOString();
       } else {
         acc[key] = value;
       }
@@ -1427,7 +1452,7 @@ export default class SdcModel {
 
       case "DateField":
       case "DateTimeField":
-        return new Date(Date.parse(value));
+        return toDate(value);
 
       case "URLField":
         return new URL(value);

@@ -2,7 +2,7 @@ import { app } from "./simpleDomControl/sdc_main.js";
 import { AbstractSDC } from "./simpleDomControl/AbstractSDC.js";
 import SdcModel, { SdcQuerySet } from "./simpleDomControl/sdc_model.js";
 import { registerModel } from "./simpleDomControl/sdc_socket.js";
-import Cookies from 'js-cookie';
+import Cookies from "js-cookie";
 import {
   on,
   trigger,
@@ -28,18 +28,24 @@ import {
 
 const socketReconnect = close;
 const test_utils = {
-  get_controller, getCsrfToken, controllerFromTestHtml,
+  get_controller,
+  getCsrfToken,
+  controllerFromTestHtml,
   logout: () => {
-     Cookies.set('sessionid', null);
-     console.log(`Logged out`);
+    Cookies.remove("sessionid");
+    console.log("Logged out");
   },
   login: (user) => {
-    const sessionId = SDC_TEST_USER?.[user] || '';
-    if (sessionId) {
-      console.log(`Logged in as ${user}`);
+    const sessionId = globalThis.SDC_TEST_USER?.[user];
+    if (!sessionId) {
+      Cookies.remove("sessionid");
+      console.warn(`Unknown test user: ${user}`);
+      return false;
     }
-    Cookies.set('sessionid', sessionId);
-  }
+    Cookies.set("sessionid", sessionId);
+    console.log(`Logged in as ${user}`);
+    return true;
+  },
 };
 
 export {
@@ -58,5 +64,5 @@ export {
   test_utils,
   SdcModel,
   SdcQuerySet,
-  registerModel
+  registerModel,
 };

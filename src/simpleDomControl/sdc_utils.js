@@ -1,4 +1,4 @@
-import {SdcModel, SdcQuerySet} from "../index.js";
+import { SdcModel, SdcQuerySet } from "../index.js";
 
 /**
  * Reference to the HTML body.
@@ -193,7 +193,7 @@ function progressHandlingFunction(e) {
 
     $progressContainer
       .find(".progress-bar")
-      .css({width: percentVal})
+      .css({ width: percentVal })
       .text(percentVal);
   }
 }
@@ -331,7 +331,7 @@ function parseHiddenInputs(value) {
 }
 
 export function getValueFromField(formItem) {
-  let {type, name} = formItem;
+  let { type, name } = formItem;
   if (name && name !== "") {
     if (type === "hidden") {
       return parseHiddenInputs($(formItem).val());
@@ -350,17 +350,63 @@ export function getValueFromField(formItem) {
   return null;
 }
 
-function formatDateTimeLocal(date) {
-  const pad = n => String(n).padStart(2, '0');
+const pad2 = (n) => String(n).padStart(2, "0");
 
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+/**
+ * Convert a Date, a date string or a timestamp into a valid Date.
+ * A date-only string ("YYYY-MM-DD") is read as local midnight, not UTC,
+ * so the day does not shift in time zones west of UTC.
+ *
+ * @param {*} value
+ * @returns {?Date} null if the value is empty or not a valid date
+ */
+export function toDate(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+  let date;
+  if (value instanceof Date) {
+    date = value;
+  } else if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, d] = value.split("-").map(Number);
+    date = new Date(y, m - 1, d);
+  } else {
+    date = new Date(value);
+  }
+  return isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * @param {*} value
+ * @returns {string} "YYYY-MM-DD" in local time, or "" if not a valid date
+ */
+export function formatDate(value) {
+  const date = toDate(value);
+  if (!date) {
+    return "";
+  }
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+/**
+ * @param {*} value
+ * @returns {string} "YYYY-MM-DDTHH:MM" in local time, or "" if not a valid date
+ */
+export function formatDateTimeLocal(value) {
+  const date = toDate(value);
+  if (!date) {
+    return "";
+  }
+  return `${formatDate(date)}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
 }
 
 export function setValueInField(formItem, value) {
-  let {type, name} = formItem;
+  let { type, name } = formItem;
   if (name && name !== "") {
     if (type === "datetime-local") {
       formItem.value = formatDateTimeLocal(value);
+    } else if (type === "date") {
+      formItem.value = formatDate(value);
     } else if (type === "checkbox") {
       formItem.checked = !!value;
     } else if (type === "file") {
@@ -374,7 +420,7 @@ export function setValueInField(formItem, value) {
     } else if (value instanceof SdcModel) {
       $(formItem).val(value.id);
     } else if (value instanceof SdcQuerySet) {
-      $(formItem).val(`[${value.getIds().join(',')}]`);
+      $(formItem).val(`[${value.getIds().join(",")}]`);
     } else {
       if (value === null) {
         value = "";
