@@ -37,6 +37,7 @@
 - `listView()` responses fill the queryset like `load()`.
 - `syncModelToForm()` fills create forms; `syncForm()` and live form edits no longer throw on invalid
   values; edits in one form are shown in the other forms of the model.
+- The develop watchers of `gulp/gulp.jsx` rebuild when files are added or deleted, not only changed.
 
 ### Removed
 - The build no longer injects `_on_init_params` into controllers, and `this.params` no longer requires an

@@ -65,10 +65,14 @@ function link_files(cb) {
 }
 
 
+// File events that trigger a rebuild in the develop watchers.
+const WATCH_EVENTS = ['add', 'change', 'unlink'];
+
 exports.sdc_watch_scss = function () {
   const watcher = gulp.watch('./src/**/*.scss', {followSymlinks: true});
-  watcher.on('change', (a) => {
-    console.log(`${a} has changed! SCSS is recompiling...`);
+  watcher.on('all', (event, a) => {
+    if (!WATCH_EVENTS.includes(event)) return;
+    console.log(`${a}: ${event}! SCSS is recompiling...`);
     scss()().on('end', () => {
       console.log(`... recompiling done!`);
     });
@@ -91,8 +95,9 @@ exports.sdc_watch_webpack_factory = (webpack_task, cb) => {
       usePolling: false,      // optional
       ignored: /node_modules/,
     })
-    watcher.on('change', (a) => {
-      console.log(`${a} has changed! javascript is recompiling...`);
+    watcher.on('all', (event, a) => {
+      if (!WATCH_EVENTS.includes(event)) return;
+      console.log(`${a}: ${event}! javascript is recompiling...`);
       webpack_series_factory(webpack_task)();
       cb && cb();
     });
