@@ -72,7 +72,7 @@ function findSdcTgs($container, tagNameList, parentController) {
  */
 function replacePlaceholderController(controller, url, urlValues) {
   for (let key_idx in controller._urlParams) {
-    if (controller._urlParams.hasOwnProperty(key_idx)) {
+    if (Object.hasOwn(controller._urlParams, key_idx)) {
       let key = controller._urlParams[key_idx];
       let re = RegExp("%\\(" + key + "\\)\\w", "gm");
       const val = urlValues[key];

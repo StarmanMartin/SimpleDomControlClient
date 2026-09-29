@@ -158,9 +158,9 @@ export class AbstractSDC {
     for (const model of this._models) {
       model.close();
     }
-    let _childController = this._childController;
+    const { _childController } = this;
     for (let i in _childController) {
-      if (_childController.hasOwnProperty(i)) {
+      if (Object.hasOwn(_childController, i)) {
         for (let cc of _childController[i]) {
           if (!cc.remove()) {
             return false;
@@ -294,10 +294,10 @@ export class AbstractSDC {
   }
 
   iterateAllChildren() {
-    let _childController = this._childController;
+    const { _childController } = this;
     let res = [];
     for (let i in _childController) {
-      if (_childController.hasOwnProperty(i)) {
+      if (Object.hasOwn(_childController, i)) {
         for (let cc of _childController[i]) {
           res.push(cc);
           res.push(...cc.iterateAllChildren());

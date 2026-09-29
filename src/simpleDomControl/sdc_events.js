@@ -23,7 +23,7 @@ let eventList = {};
  */
 export function on(name, controller) {
   setEvent(name);
-  if (!eventList.hasOwnProperty(name)) {
+  if (!Object.hasOwn(eventList, name)) {
     return console.log("No event: " + name, controller);
   }
 
@@ -61,7 +61,7 @@ export function setEvent(name, functionName) {
  */
 export function allOff(controller) {
   for (let eventName in handlerList) {
-    if (handlerList.hasOwnProperty(eventName)) {
+    if (Object.hasOwn(handlerList, eventName)) {
       for (let i = handlerList[eventName].length - 1; i >= 0; i--) {
         if (controller === handlerList[eventName][i]) {
           handlerList[eventName].splice(i, 1);
@@ -82,7 +82,7 @@ export function allOff(controller) {
 export function trigger(name) {
   let args = Array.apply(null, arguments);
   name = args.shift();
-  if (!handlerList.hasOwnProperty(name) || !eventList.hasOwnProperty(name)) {
+  if (!Object.hasOwn(handlerList, name) || !Object.hasOwn(eventList, name)) {
     return promiseDummyFactory();
   }
   let handler = handlerList[name];

@@ -167,7 +167,7 @@ function _handle_response(data) {
         delete OPEN_REQUESTS[data.id];
       }
     } else if (data.type && data.type === "sdc_event") {
-      let event = data.event;
+      let { event } = data;
       if (event) {
         trigger(event, data.payload);
       }

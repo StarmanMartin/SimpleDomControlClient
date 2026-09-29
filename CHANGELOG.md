@@ -44,5 +44,10 @@
   `onInit()` method. `onInit()` is deprecated (it has not been called since 0.158.7).
 
 ### Internal
+- Added the MIT `LICENSE` file (the package was already declared MIT).
+- `yarn lint:js` passes (the ESLint config declares the `$` / `_` globals and allows relative imports); CI
+  runs the linter and tests on Node 22 and 24.
+- File uploads of models pass errors from reading the file on to the request (the async Promise executor
+  swallowed them).
 - Switched to Yarn 4 with the `node-modules` linker.
 - The published package contains only `dist/`, `src/`, `gulp/`, `README.md` and `CHANGELOG.md`.

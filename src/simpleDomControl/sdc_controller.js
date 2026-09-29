@@ -13,7 +13,7 @@ import {
 
 import { runOnInitWithParameter } from "./sdc_params.js";
 import { setControllerEvents } from "./sdc_dom_events.js";
-import { app } from "./sdc_main.js";
+import "./sdc_main.js";
 
 export let Global = [];
 export let controllerList = {};

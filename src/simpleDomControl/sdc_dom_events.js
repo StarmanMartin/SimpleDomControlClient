@@ -27,7 +27,7 @@ function checkIfEventFits(ev_type, e, target) {
 export function windowEventHandler(event) {
   let ev_type = event.type;
   if (
-    event.hasOwnProperty("namespace") &&
+    Object.hasOwn(event, "namespace") &&
     event.namespace &&
     event.namespace.length
   )
@@ -98,10 +98,10 @@ export function initEvents() {
 export function setControllerEvents(controller) {
   const events = controller.getEvents();
   for (let ev_type in events) {
-    if (events.hasOwnProperty(ev_type)) {
+    if (Object.hasOwn(events, ev_type)) {
       let eventList = events[ev_type];
       for (let domSelector in eventList) {
-        if (eventList.hasOwnProperty(domSelector)) {
+        if (Object.hasOwn(eventList, domSelector)) {
           controller.find(domSelector).each(function () {
             let $elements = $(this);
             let event_list = $elements.attr(`sdc_${ev_type}`) || null;

@@ -825,43 +825,47 @@ export class SdcQuerySet {
       const value = elem[key];
       if (value instanceof File) {
         toSolve.push(
-          new Promise(async (resolve, reject) => {
+          new Promise((resolve, reject) => {
             const event_id = uuidv4();
             this.openRequest[event_id] = [resolve, reject];
 
-            const buffer = await value.arrayBuffer();
-            let result = new Uint8Array(buffer);
-            let numberOfChunks = Math.ceil(result.length / MAX_FILE_UPLOAD);
-            files[key] = {
-              id: event_id,
-              file_name: value.name,
-              field_name: key,
-              content_length: value.size,
-            };
-            for (let i = 0; i < numberOfChunks; ++i) {
-              const chunk = Array.from(result.slice(
-                MAX_FILE_UPLOAD * i,
-                MAX_FILE_UPLOAD * (i + 1),
-              ));
-              this.socket.send(
-                JSON.stringify({
-                  event: "model",
-                  event_type: "upload",
-                  event_id,
-                  args: {
-                    chunk,
-                    idx: i,
-                    number_of_chunks: numberOfChunks,
-                    file_name: value.name,
-                    field_name: key,
-                    content_length: value.size,
-                    content_type: value.type,
-                    model_name: this.modelName,
-                    model_query: this.modelQuery,
-                  },
-                }),
-              );
-            }
+            value.arrayBuffer().then((buffer) => {
+              let result = new Uint8Array(buffer);
+              let numberOfChunks = Math.ceil(result.length / MAX_FILE_UPLOAD);
+              files[key] = {
+                id: event_id,
+                file_name: value.name,
+                field_name: key,
+                content_length: value.size,
+              };
+              for (let i = 0; i < numberOfChunks; ++i) {
+                const chunk = Array.from(result.slice(
+                  MAX_FILE_UPLOAD * i,
+                  MAX_FILE_UPLOAD * (i + 1),
+                ));
+                this.socket.send(
+                  JSON.stringify({
+                    event: "model",
+                    event_type: "upload",
+                    event_id,
+                    args: {
+                      chunk,
+                      idx: i,
+                      number_of_chunks: numberOfChunks,
+                      file_name: value.name,
+                      field_name: key,
+                      content_length: value.size,
+                      content_type: value.type,
+                      model_name: this.modelName,
+                      model_query: this.modelQuery,
+                    },
+                  }),
+                );
+              }
+            }).catch((err) => {
+              this._closeOpenRequest(event_id);
+              reject(err);
+            });
           }),
         );
       }
@@ -881,7 +885,7 @@ export class SdcQuerySet {
   async _onMessage(e) {
     let data = JSON.parse(e.data);
     if (data.is_error) {
-      if (this.openRequest.hasOwnProperty(data.event_id)) {
+      if (Object.hasOwn(this.openRequest, data.event_id)) {
         this.openRequest[data.event_id][1](new SdcModelError(data));
         this._closeOpenRequest(data.event_id);
       }
@@ -934,7 +938,7 @@ export class SdcQuerySet {
         data.data.instance = JSON.parse(data.data.instance);
       }
 
-      if (this.openRequest.hasOwnProperty(data.event_id)) {
+      if (Object.hasOwn(this.openRequest, data.event_id)) {
         this.openRequest[data.event_id][0](data);
         this._closeOpenRequest(data.event_id);
       }
@@ -996,7 +1000,7 @@ export class SdcQuerySet {
           `SDC Model (${this.modelName}, ${this.modelId}) Socket closed unexpectedly`,
         );
         this._isConnected = false;
-        for (const [_key, value] of Object.entries(this.openRequest)) {
+        for (const value of Object.values(this.openRequest)) {
           value[1](e);
         }
         this.openRequest = {};
@@ -1316,7 +1320,7 @@ export default class SdcModel {
     $forms = this._resolveForms($forms);
 
     const self = this;
-    const fields = this.constructor.fields;
+    const { fields } = this.constructor;
     $forms.each(function () {
       const pk = normalizePk($(this).data("model_pk"));
       // Create forms carry model_pk -1 while the new model's id is still null.
@@ -1325,7 +1329,7 @@ export default class SdcModel {
       }
 
       for (let formItem of this.elements) {
-        let name = formItem.name;
+        let { name } = formItem;
         if (name && name !== "" && !!fields[name]) {
           setValueInField(formItem, self[name])
         }
@@ -1345,11 +1349,11 @@ export default class SdcModel {
     $forms = this._resolveForms($forms);
 
     const self = this;
-    const fields = this.constructor.fields;
+    const { fields } = this.constructor;
     const returnValue = {}
 
     function setValueInForm(name, value) {
-      if (!!fields[name]) {
+      if (fields[name]) {
         try {
           self[name] = value;
         } catch {

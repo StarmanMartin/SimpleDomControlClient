@@ -13,24 +13,19 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.node,
+        // jQuery and lodash are peer dependencies, provided as globals at runtime.
+        $: "readonly",
+        _: "readonly",
       },
     },
     rules: {
       ...js.configs.recommended.rules,
       "no-console": "off",
+      // Unused callback arguments and caught errors are part of the signatures.
+      "no-unused-vars": ["error", { args: "none", caughtErrors: "none" }],
+      "no-empty": ["error", { allowEmptyCatch: true }],
       "comma-dangle": ["warn", "only-multiline"],
       "prefer-destructuring": ["error", { object: true, array: false }],
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["./*", "../*"],
-              message: "import statements should have an absolute path",
-            },
-          ],
-        },
-      ],
       "max-len": [
         "error",
         {
@@ -38,6 +33,15 @@ export default [
           ignoreComments: true,
         },
       ],
+    },
+  },
+  {
+    // The test helpers run inside Jest.
+    files: ["src/simpleDomControl/sdc_test_utils.js"],
+    languageOptions: {
+      globals: {
+        jest: "readonly",
+      },
     },
   },
 ];
