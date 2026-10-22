@@ -48,6 +48,10 @@ const test_utils = {
   },
 };
 
+if(window) {
+  window.sdcApp = app;
+}
+
 export {
   app,
   AbstractSDC,
