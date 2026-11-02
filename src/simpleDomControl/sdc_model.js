@@ -575,7 +575,9 @@ export class SdcQuerySet {
           )
           .data("model", modelObj)
           .data("model_pk", pk)
-          .data("form_name", formName);
+          .data("form_name", formName)
+          .attr('SdcModelName', this.modelName)
+          .attr('SdcModelPK', pk);
         modelObj.addForm($form);
         if ($form.length > 0 && !$form[0].hasAttribute("sdc_submit")) {
           $form.attr("sdc_submit", "submitModelFormDistributor");
