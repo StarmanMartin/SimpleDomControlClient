@@ -329,12 +329,14 @@ export class SdcQuerySet {
    * Load model instances matching the current query into the queryset cache.
    *
    * @param {?object} modelQuery
+   * @param {object} [options]
+   * @param {?number} [options.limit] load at most this many instances (the server slices the query)
    * @returns {Promise<SdcQuerySet>}
    */
-  load(modelQuery = null) {
+  load(modelQuery = null, { limit = null } = {}) {
     this.valuesList = [];
     this.modelQuery = modelQuery ?? this.modelQuery;
-    return this._sendLoad();
+    return this._sendLoad(null, limit);
   }
 
   /**
@@ -392,19 +394,23 @@ export class SdcQuerySet {
    *
    * @returns {Promise<*>}
    */
-  _sendLoad(loadQuery = null) {
+  _sendLoad(loadQuery = null, limit = null) {
     return this.isConnected().then(() => {
       const event_id = uuidv4();
+      const args = {
+        model_name: this.modelName,
+        model_query: loadQuery ?? this.modelQuery,
+      };
+      if (limit !== null) {
+        args.limit = limit;
+      }
       return new Promise((resolve, reject) => {
         this.socket.send(
           JSON.stringify({
             event: "model",
             event_type: "load",
             event_id,
-            args: {
-              model_name: this.modelName,
-              model_query: loadQuery ?? this.modelQuery,
-            },
+            args,
           }),
         );
 
@@ -575,7 +581,9 @@ export class SdcQuerySet {
           )
           .data("model", modelObj)
           .data("model_pk", pk)
-          .data("form_name", formName);
+          .data("form_name", formName)
+          .attr('SdcModelName', this.modelName)
+          .attr('SdcModelPK', pk);
         modelObj.addForm($form);
         if ($form.length > 0 && !$form[0].hasAttribute("sdc_submit")) {
           $form.attr("sdc_submit", "submitModelFormDistributor");
