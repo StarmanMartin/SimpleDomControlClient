@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- `SdcQuerySet.load(modelQuery, { limit })` loads at most `limit` instances; the server slices the query (needs SimpleDomControl with `limit` support, the same release).
+
 ## 0.159.0
 
 ### Added
