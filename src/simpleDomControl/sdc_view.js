@@ -574,9 +574,10 @@ function syncAttributes($real, $virtual) {
     }
   });
 
-  // Add or update
+  // Add or update (data-* too: libraries such as Bootstrap read
+  // data-bs-target etc. from the attribute, not from jQuery's data cache)
   [...virtualAttrs].forEach((attr) => {
-    if (!attr.name.startsWith(`data`) && $real.attr(attr.name) !== attr.value) {
+    if ($real.attr(attr.name) !== attr.value) {
       $real.attr(attr.name, attr.value);
     }
   });

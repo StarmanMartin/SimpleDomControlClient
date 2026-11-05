@@ -157,3 +157,59 @@ describe('Controller reconcile', () => {
 
     });
 });
+// Regression: reconcile kept nodes but did not update their data-* attributes.
+// After a delete in <sdc-list-view>, the kept "Remove" buttons still pointed
+// (data-bs-target) to the modal of another row or to a modal that no longer
+// existed.
+describe('Reconcile data-* attributes (list delete)', () => {
+    let lid = 0;
+
+    // Output of the list templates: one row per instance with a "Remove"
+    // button that opens the row's confirm modal.
+    function renderList(items, idOf) {
+        const rows = items.map(([pk, name]) => {
+            const id = idOf(pk);
+            return `<tr><td>${name}</td><td>` +
+                `<button type="button" data-bs-toggle="modal" data-bs-target="#delete-model-modal-${id}">Remove</button>` +
+                `<div class="modal" id="delete-model-modal-${id}"><div class="modal-footer">` +
+                `<button sdc_click="removeInstance" data-instance-pk="${pk}" type="button">Remove ${name}</button>` +
+                `</div></div></td></tr>`;
+        }).join('');
+        return $(`<div class="container-fluid"><table class="table"><tbody>${rows}</tbody></table></div>`);
+    }
+
+    beforeAll(() => {
+        app.updateJquery();
+    });
+
+    test.each([
+        ['ids per render (sdc_tools list template)', () => `uuid-${++lid}`],
+        ['ids by pk (generated list template)', (pk) => `${pk}`],
+    ])('every "Remove" button opens the modal of its own row (%s)', (_, idOf) => {
+        const items = [[1, 'A'], [2, 'B'], [3, 'C']];
+        const $real = renderList(items, idOf);
+        $('body').empty().append($real);
+        const oldButtons = $real.find('[data-bs-toggle=modal]').toArray();
+
+        // delete A
+        reconcile(renderList(items.slice(1), idOf), $real);
+
+        const $rows = $real.find('tr');
+        expect($rows.length).toBe(2);
+        // The buttons are kept nodes (only then their attributes are synced).
+        $real.find('[data-bs-toggle=modal]').each((_, btn) => {
+            expect(oldButtons).toContain(btn);
+        });
+        $rows.each((i, tr) => {
+            const $tr = $(tr);
+            const [pk, name] = items[i + 1];
+            const target = $tr.find('[data-bs-toggle=modal]').attr('data-bs-target');
+            expect($tr.find('td').first().text()).toBe(name);
+            expect($real.find(target).length).toBe(1);
+            expect($tr.find(target).length).toBe(1);
+            const $confirm = $tr.find(target).find('[sdc_click=removeInstance]');
+            expect($confirm.attr('data-instance-pk')).toBe(`${pk}`);
+            expect($confirm.data('instance-pk')).toBe(pk);
+        });
+    });
+});
