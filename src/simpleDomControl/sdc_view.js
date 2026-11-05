@@ -477,6 +477,9 @@ export function reconcile($virtualNode, $realNode) {
   const depth = Math.max(...$new.concat($old).map((x) => x.depth));
   const op_steps = lcbDiff($old, $new, depth);
   let toRemove = [];
+  // Controllers of kept real nodes that get a new controller instance from
+  // their virtual counterpart (syncAttributes overwrites the data link).
+  const replacedControllers = [];
   window.MAIN = $realNode;
   window.OPS = op_steps;
 
@@ -484,13 +487,25 @@ export function reconcile($virtualNode, $realNode) {
     const { op, $element, idx } = op_step;
 
     if (op.type === "keep_counterpart") {
-      let cIdx = op.counterpart.getIdx();
+      // The root of the real tree is the reconcile target and never moves;
+      // its index among its own (real) siblings is irrelevant.
+      let cIdx = op_step.parent ? op.counterpart.getIdx() : idx;
       if (cIdx !== idx) {
         const elemBefore = op_step.getBefore();
         if (!elemBefore) {
           op_step.getRealParent().$element.prepend(op.counterpart.$element);
         } else {
           op.counterpart.$element.insertAfter(elemBefore.$element);
+        }
+      }
+
+      if (op_step.parent) {
+        const oldController = op.counterpart.$element.data(DATA_CONTROLLER_KEY);
+        if (
+          oldController &&
+          oldController !== $element.data(DATA_CONTROLLER_KEY)
+        ) {
+          replacedControllers.push(oldController);
         }
       }
 
@@ -514,6 +529,24 @@ export function reconcile($virtualNode, $realNode) {
   });
 
   toRemove.forEach(($element) => $element.safeRemove());
+  removeReplacedControllers(replacedControllers);
+}
+
+/**
+ * Removes controllers whose DOM node was kept by reconcile but now belongs to
+ * a new controller instance. remove() also removes the controller's
+ * $container, so the old controllers are detached from the kept nodes first.
+ * They are removed innermost first (reverse document order): each child takes
+ * itself out of its parent's child list, so a parent never removes a child a
+ * second time.
+ *
+ * @param {Array<AbstractSDC>} controllers - in document order
+ */
+function removeReplacedControllers(controllers) {
+  controllers.forEach((controller) => {
+    controller.$container = $();
+  });
+  controllers.reverse().forEach((controller) => controller.remove());
 }
 
 /**

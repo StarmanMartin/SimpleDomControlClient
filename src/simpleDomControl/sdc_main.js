@@ -415,7 +415,8 @@ export let app = {
    * @param {Object} process - Process object containing the refresh process
    */
   reconcile: (controller, $virtualNode, $realNode = null, process = null) => {
-    if (!$realNode) {
+    const isContainer = !$realNode;
+    if (isContainer) {
       let $temp = controller.$container.clone().empty();
       $temp.data(DATA_CONTROLLER_KEY, null);
       $temp.removeClass(CONTROLLER_CLASS);
@@ -432,6 +433,14 @@ export let app = {
 
     return refresh($virtualNode, controller, refreshProcess).then(() => {
       reconcile($virtualNode, $realNode);
+      if (isContainer) {
+        // $virtualNode is a stripped clone of the container: syncing its
+        // attributes and data onto the container removed the controller
+        // class and the back-link to the controller. Restore both.
+        controller.$container
+          .addClass(CONTROLLER_CLASS)
+          .data(DATA_CONTROLLER_KEY, controller);
+      }
       resetChildren(controller);
       if (!isRunningProcess) {
         updateEventAndTriggerOnRefresh(refreshProcess);
