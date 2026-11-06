@@ -6,6 +6,7 @@ import {
 import {
   replaceTagElementsInContainer,
   reloadHTMLController,
+  VIEW_REDIRECT,
   DATA_CONTROLLER_KEY,
   CONTROLLER_CLASS,
   getController,
@@ -402,6 +403,7 @@ export let app = {
    */
   reloadController: (controller) => {
     return reloadHTMLController(controller).then((html) => {
+      if (html === VIEW_REDIRECT) return;
       let $html = $(html);
       return app.reconcile(controller, $html);
     });

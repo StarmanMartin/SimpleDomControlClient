@@ -14,6 +14,9 @@ import { trigger } from "./sdc_events.js";
  */
 let htmlFiles = {};
 
+// A redirect is a navigation result, not HTML to render or cache.
+export const VIEW_REDIRECT = Symbol("view redirect");
+
 export const DATA_CONTROLLER_KEY = "_controller_";
 export const CONTROLLER_CLASS = "_sdc_controller_";
 
@@ -100,6 +103,7 @@ function loadHTMLFile(controller, args) {
   if (!contentUrl) {
     return Promise.resolve(false);
   } else if (htmlFiles[_tagName]) {
+    controller.autoRedirect = null;
     return Promise.resolve(htmlFiles[_tagName]);
   }
 
@@ -108,6 +112,7 @@ function loadHTMLFile(controller, args) {
 
   return $.get(contentUrl, args)
     .then(function (data) {
+      controller.autoRedirect = null;
       if (!contentReload) {
         htmlFiles[_tagName] = data;
       }
@@ -117,11 +122,9 @@ function loadHTMLFile(controller, args) {
     .catch(function (err) {
       if (err.status === 301) {
         const data = err.responseJSON;
-        trigger("_RedirectOnView", data["url-link"]);
-        if (!contentReload) {
-          controller.autoRedirect = data["url-link"];
-        }
-        return '<p>Redirected</p>';
+        controller.autoRedirect = data["url-link"];
+        trigger("_RedirectOnView", controller.autoRedirect);
+        return VIEW_REDIRECT;
       }
       controller.autoRedirect = null;
       if (typeof controller.confirmPageLoaded === "function") {
@@ -216,6 +219,7 @@ export function loadFilesFromController(controller) {
   return Promise.all([loadHTMLFile(controller, getElements.args)]).then(
     function (results) {
       let htmlFile = results[0];
+      if (htmlFile === VIEW_REDIRECT) return VIEW_REDIRECT;
       if (htmlFile) {
         try {
           return $(htmlFile);

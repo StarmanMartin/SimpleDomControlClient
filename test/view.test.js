@@ -3,11 +3,55 @@
  */
 
 import {TestItem, TestList} from "./utils.js";
-import {reconcile} from "../src/simpleDomControl/sdc_view.js";
+import {reconcile, cleanCache, loadFilesFromController, VIEW_REDIRECT} from "../src/simpleDomControl/sdc_view.js";
+import {runControlFlowFunctions} from "../src/simpleDomControl/sdc_controller.js";
+import {on, allOff} from "../src/simpleDomControl/sdc_events.js";
 import {app} from "../src/index.js";
 import $ from "jquery";
 
 window.$ = $;
+
+describe('View redirects', () => {
+    let controller, listener;
+    const link = '<a href=".~login~&next=..">Redirector</a>';
+
+    beforeEach(() => {
+        cleanCache();
+        controller = {
+            contentUrl: '/protected', _tagName: 'protected-view', _urlParams: [],
+            $container: $('<protected-view></protected-view>'), contentReload: true,
+            onLoad: jest.fn(), willShow: jest.fn(), confirmPageLoaded: jest.fn(),
+        };
+        listener = {navLoaded: jest.fn()};
+        on('navLoaded', listener);
+        jest.spyOn($, 'get').mockRejectedValue({status: 301, responseJSON: {'url-link': link}});
+    });
+
+    afterEach(() => {
+        allOff(listener);
+        jest.restoreAllMocks();
+        cleanCache();
+    });
+
+    test('redirect skips rendering and the view lifecycle, notifying navigation once', async () => {
+        await runControlFlowFunctions(controller);
+        expect(controller.autoRedirect).toBe(link);
+        expect(listener.navLoaded).toHaveBeenCalledTimes(1);
+        expect(listener.navLoaded).toHaveBeenCalledWith(controller);
+        expect(controller.onLoad).not.toHaveBeenCalled();
+        expect(controller.willShow).not.toHaveBeenCalled();
+        expect(controller.$container.text()).toBe('');
+    });
+
+    test('redirect is not cached and a subsequent successful load clears it', async () => {
+        controller.contentReload = false;
+        expect(await loadFilesFromController(controller)).toBe(VIEW_REDIRECT);
+        $.get.mockResolvedValueOnce('<div>Allowed</div>');
+        expect((await loadFilesFromController(controller)).text()).toBe('Allowed');
+        expect($.get).toHaveBeenCalledTimes(2);
+        expect(controller.autoRedirect).toBeNull();
+    });
+});
 
 describe('Test reconcile', () => {
 

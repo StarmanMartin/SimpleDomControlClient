@@ -9,7 +9,9 @@ import {
   loadFilesFromController,
   refresh,
   runControllerFillContent,
+  VIEW_REDIRECT,
 } from "./sdc_view.js";
+import { trigger } from "./sdc_events.js";
 
 import { runOnInitWithParameter } from "./sdc_params.js";
 import { setControllerEvents } from "./sdc_dom_events.js";
@@ -199,6 +201,7 @@ function runControllerShow(controller, $html) {
  */
 function runControllerLoad(controller) {
   return loadFilesFromController(controller).then((html) => {
+    if (html === VIEW_REDIRECT) return html;
     if (!controller.onLoad || controller._onLoadDone) {
       return html;
     }
@@ -224,9 +227,16 @@ function runControllerLoad(controller) {
 export function runControlFlowFunctions(controller, process) {
   const prom_controller = runControllerLoad(controller)
     .then(function ($html) {
+      if ($html === VIEW_REDIRECT) {
+        if (typeof controller.confirmPageLoaded === "function") {
+          trigger("navLoaded", controller);
+        }
+        return VIEW_REDIRECT;
+      }
       return runControllerShow(controller, $html);
     })
-    .then(() => {
+    .then((result) => {
+      if (result === VIEW_REDIRECT) return;
       return runRefresh(controller, process);
     })
     .catch(function ($html) {
