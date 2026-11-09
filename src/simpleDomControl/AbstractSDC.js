@@ -133,6 +133,14 @@ export class AbstractSDC {
     return this._childController;
   }
 
+  /**
+   * Runs after the HTML fragment is loaded and before child controllers are created.
+   *
+   * @param {jQuery|null} $html - the loaded fragment, ``null`` without ``contentUrl``.
+   * @param {*} [data] - data sent by the server with the fragment (the second value
+   * of ``get_content()``, ``{}`` if it returns only HTML); also in ``this.contentData``.
+   * @return {Promise<*>|*}
+   */
   onLoad() {
     return this._runLifecycle("onLoad", arguments);
   }

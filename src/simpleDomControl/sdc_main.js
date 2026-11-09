@@ -402,9 +402,10 @@ export let app = {
    * @return {Promise<jQuery>}
    */
   reloadController: (controller) => {
-    return reloadHTMLController(controller).then((html) => {
-      if (html === VIEW_REDIRECT) return;
-      let $html = $(html);
+    return reloadHTMLController(controller).then((content) => {
+      if (!content || content === VIEW_REDIRECT) return;
+      controller.contentData = content.data;
+      let $html = $(content.html);
       return app.reconcile(controller, $html);
     });
   },

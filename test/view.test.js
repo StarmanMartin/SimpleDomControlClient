@@ -53,6 +53,48 @@ describe('View redirects', () => {
     });
 });
 
+describe('Content protocol', () => {
+    let controller;
+
+    beforeEach(() => {
+        cleanCache();
+        controller = {
+            contentUrl: '/content', _tagName: 'content-view', _urlParams: [],
+            $container: $('<content-view></content-view>'), contentReload: false,
+            onLoad: jest.fn(), willShow: jest.fn(), onRefresh: jest.fn(), getEvents: () => ({}),
+        };
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+        cleanCache();
+    });
+
+    test('JSON {html, data} sets contentData and passes it to onLoad', async () => {
+        jest.spyOn($, 'get').mockResolvedValue({html: '<div>Hi</div>', data: {count: 3}});
+        await runControlFlowFunctions(controller);
+        expect(controller.contentData).toEqual({count: 3});
+        expect(controller.onLoad).toHaveBeenCalledTimes(1);
+        expect(controller.onLoad.mock.calls[0][0].text()).toBe('Hi');
+        expect(controller.onLoad.mock.calls[0][1]).toEqual({count: 3});
+    });
+
+    test('cached content keeps its data', async () => {
+        jest.spyOn($, 'get').mockResolvedValue({html: '<div>Hi</div>', data: [1]});
+        await loadFilesFromController(controller);
+        const other = {...controller, contentData: undefined};
+        expect((await loadFilesFromController(other)).text()).toBe('Hi');
+        expect(other.contentData).toEqual([1]);
+        expect($.get).toHaveBeenCalledTimes(1);
+    });
+
+    test('plain HTML answer still works with empty data', async () => {
+        jest.spyOn($, 'get').mockResolvedValue('<div>Plain</div>');
+        expect((await loadFilesFromController(controller)).text()).toBe('Plain');
+        expect(controller.contentData).toEqual({});
+    });
+});
+
 describe('Test reconcile', () => {
 
     beforeAll(() => {

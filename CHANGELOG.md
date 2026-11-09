@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.161.0
+
+### Changed
+- Content protocol: the answer of a content request (`_method=content`) is `{html, data}` (JSON). `data` is passed
+  to `onLoad(html, data)` and stored in `controller.contentData` (also after `app.reloadController()`); cached
+  content keeps its data. A plain HTML answer is still accepted (`data` is `{}`). Needs SimpleDomControl 0.161.0.
+
+## 0.160.0 – 0.160.4
 
 ### Added
 - `SdcQuerySet.load(modelQuery, { limit })` loads at most `limit` instances; the server slices the query (needs SimpleDomControl with `limit` support, the same release).

@@ -90,13 +90,30 @@ function replacePlaceholderController(controller, url, urlValues) {
 }
 
 /**
+ * parseContentResponse normalizes the answer of a ``_method=content`` request.
+ * The server sends ``{html, data}`` as JSON (jQuery parses it already). A plain
+ * HTML answer is treated as ``{html, data: {}}``.
+ *
+ * @param {*} response - the response body.
+ * @returns {{html: string, data: *}}
+ */
+function parseContentResponse(response) {
+  if (response && typeof response === "object" && "html" in response) {
+    return { html: response.html, data: response.data ?? {} };
+  }
+  return { html: response, data: {} };
+}
+
+/**
  * loadHTMLFile loads the HTML content file from the server via ajax request.
  *
  * If the HTML file is loaded already the function takes no action.
  *
  * @param {AbstractSDC} controller - a content URL from the controller.
  * @param {object} args - get args.
- * @returns {Promise<jQuery|Boolean>} - waits for the file to be loaded.
+ * @returns {Promise<{html: string, data: *}|Boolean|Symbol>} - waits for the file to be loaded.
+ * Resolves with the content object, ``false`` if the controller has no content URL or
+ * ``VIEW_REDIRECT`` if the server redirected.
  */
 function loadHTMLFile(controller, args) {
   const { contentUrl, _tagName, contentReload } = controller;
@@ -111,13 +128,14 @@ function loadHTMLFile(controller, args) {
   args._method = "content";
 
   return $.get(contentUrl, args)
-    .then(function (data) {
+    .then(function (response) {
       controller.autoRedirect = null;
+      const content = parseContentResponse(response);
       if (!contentReload) {
-        htmlFiles[_tagName] = data;
+        htmlFiles[_tagName] = content;
       }
 
-      return data;
+      return content;
     })
     .catch(function (err) {
       if (err.status === 301) {
@@ -216,21 +234,16 @@ export function loadFilesFromController(controller) {
     controller.contentUrl = getElements.url;
   }
 
-  return Promise.all([loadHTMLFile(controller, getElements.args)]).then(
-    function (results) {
-      let htmlFile = results[0];
-      if (htmlFile === VIEW_REDIRECT) return VIEW_REDIRECT;
-      if (htmlFile) {
-        try {
-          return $(htmlFile);
-        } catch {
-          return $("<div></div>").append(htmlFile);
-        }
-      }
-
-      return null;
-    },
-  );
+  return loadHTMLFile(controller, getElements.args).then(function (content) {
+    if (content === VIEW_REDIRECT) return VIEW_REDIRECT;
+    if (!content) return null;
+    controller.contentData = content.data;
+    try {
+      return $(content.html);
+    } catch {
+      return $("<div></div>").append(content.html);
+    }
+  });
 }
 
 /**
@@ -241,7 +254,9 @@ export function loadFilesFromController(controller) {
  *
  * @param {AbstractSDC} controller - a instance of a JavaScript controller object.
  *
- * @returns {Promise<jQuery>} - the promise waits to the files are loaded. it returns the jQuery object.
+ * @returns {Promise<{html: string, data: *}|Boolean|Symbol>} - the promise waits until the content is loaded.
+ * Resolves with the content object, ``false`` if the controller has no content URL or
+ * ``VIEW_REDIRECT`` if the server redirected.
  */
 export function reloadHTMLController(controller) {
   if (controller.contentUrl) {
@@ -251,7 +266,7 @@ export function reloadHTMLController(controller) {
   }
 
   return new Promise((resolve) => {
-    resolve($());
+    resolve(false);
   });
 }
 
@@ -275,7 +290,6 @@ function runReplaceTagElementsInContainer(
   if (controller) {
     return replaceAllTagElementsInContainer($element, controller, process);
   }
-
 
   controller = controllerFactory(
     parentController,
@@ -561,7 +575,9 @@ function syncListeners(real, virtual) {
   if (!real || !virtual || (!real._sdcListeners && !virtual._sdcListeners)) {
     return;
   }
-  (real._sdcListeners ?? []).forEach(([type, fn]) => real.removeEventListener(type, fn));
+  (real._sdcListeners ?? []).forEach(([type, fn]) =>
+    real.removeEventListener(type, fn),
+  );
   const listeners = virtual._sdcListeners ?? [];
   listeners.forEach(([type, fn]) => real.addEventListener(type, fn));
   real._sdcListeners = listeners;

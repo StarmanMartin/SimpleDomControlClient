@@ -207,7 +207,7 @@ function runControllerLoad(controller) {
     }
 
     controller._onLoadDone = true;
-    let loadPromise = controller.onLoad(html);
+    let loadPromise = controller.onLoad(html, controller.contentData);
     return (loadPromise || promiseDummyFactory()).then(() => {
       return html;
     });

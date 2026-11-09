@@ -150,7 +150,7 @@ Lifecycle
 ^^^^^^^^^
 
 ``onInit(...args)``
-``onLoad(html)``
+``onLoad(html, data)``
 ``willShow()``
 ``onRefresh(originController)``
 ``onRemove()``

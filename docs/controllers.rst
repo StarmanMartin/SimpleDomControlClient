@@ -14,7 +14,12 @@ Common properties
 
 ``contentReload``
    If ``true``, the content is always reloaded instead of using the cached
-   HTML fragment.
+   HTML fragment (and its data).
+
+``contentData``
+   The data the server sent with the HTML fragment (the second value returned
+   by ``get_content()`` on the server; ``{}`` if it returns only HTML). Set
+   before ``onLoad()`` and updated by ``app.reloadController()``.
 
 ``events``
    List of event definition objects merged into one event map.
@@ -35,9 +40,10 @@ Lifecycle
    Runs immediately after the controller is created. Arguments are resolved
    from DOM ``data-*`` attributes.
 
-``onLoad(html)``
+``onLoad(html, data)``
    Runs after the controller HTML has been fetched but before child controller
    tags are replaced. This is a common place to mutate the loaded fragment.
+   ``data`` is the server data sent with the fragment (see ``contentData``).
 
 ``willShow()``
    Runs after child controller content has been prepared and before refresh.
