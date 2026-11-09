@@ -4,6 +4,7 @@ const fs = require('fs');
 const exec = require('gulp-exec');
 const dotenv = require("dotenv");
 const gulp = require('gulp');
+const {check_dependencies} = require('./check_dependencies.cjs');
 
 function scss(bundle_mode = false) {
   const src_path = bundle_mode ? './src/*/*.scss' : './src/*.scss';
@@ -105,15 +106,16 @@ exports.sdc_watch_webpack_factory = (webpack_task, cb) => {
 };
 
 exports.sdc_default_build_factory = (webpack_task) => {
-  return series(link_files, parallel(scss(), webpack_series_factory(webpack_task)));
+  return series(link_files, check_dependencies, parallel(scss(), webpack_series_factory(webpack_task)));
 };
 
 exports.sdc_default_bundle_factory = (webpack_task) => {
-  return series(link_files, parallel(scss(true), webpack_series_factory(webpack_task)));
+  return series(link_files, check_dependencies, parallel(scss(true), webpack_series_factory(webpack_task)));
 };
 
 exports.sdc_scss = scss();
 exports.sdc_bundle_scss = scss();
 exports.sdc_clean = clean;
+exports.sdc_check_dependencies = check_dependencies;
 exports.sdc_link_files = link_files;
 exports.sdc_pre_compile_javascript = pre_compile_javascript;

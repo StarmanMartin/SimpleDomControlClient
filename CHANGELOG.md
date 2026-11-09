@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Gulp step `check_dependencies` (export `sdc_check_dependencies`), run after `link_files` in the default build and
+  bundle series: reads `<app>/Assets/sdc_app.json` of every SDC app in `Assets/libs`, adds the packages the apps
+  need to the project's `package.json` and stops the build until they are installed; incompatible ranges (also
+  between apps) and missing or outdated installs are reported. New dependency `semver`.
+
 ## 0.161.0
 
 ### Changed
