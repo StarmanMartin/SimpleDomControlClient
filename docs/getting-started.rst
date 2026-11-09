@@ -132,7 +132,7 @@ Global controllers
 ------------------
 
 Register a controller as global when it should be instantiated once and exposed
- through the global controller tree rather than repeated per matching DOM
+through the global controller tree rather than repeated per matching DOM
 container.
 
 .. code-block:: javascript
