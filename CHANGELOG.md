@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.162.0
 
 ### Added
 - Gulp step `check_dependencies` (export `sdc_check_dependencies`), run after `link_files` in the default build and
