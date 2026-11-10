@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.163.0
+
+No changes of the client runtime; released in lockstep with SimpleDomControl 0.163.0 (API tokens with
+privileges and the MCP endpoint, both server-side).
+
 ## 0.162.0
 
 ### Added
