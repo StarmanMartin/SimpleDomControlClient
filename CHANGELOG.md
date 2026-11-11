@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.164.0
+
+No changes of the client runtime; released in lockstep with SimpleDomControl 0.164.0 (agent kit, `manage.py
+sdc_agent` and smaller MCP answers, all server-side).
+
 ## 0.163.0
 
 No changes of the client runtime; released in lockstep with SimpleDomControl 0.163.0 (API tokens with
