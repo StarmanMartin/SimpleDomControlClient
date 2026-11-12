@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.165.0
+
+No changes of the client runtime; released in lockstep with SimpleDomControl 0.165.0 (`sdc_agent where --show`
+and a shorter generated controller, both server-side).
+
 ## 0.164.0
 
 No changes of the client runtime; released in lockstep with SimpleDomControl 0.164.0 (agent kit, `manage.py
