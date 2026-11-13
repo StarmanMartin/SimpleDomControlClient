@@ -484,6 +484,8 @@ export class SdcQuerySet {
           cbReject && cbReject(res);
         },
       ];
+    }).catch((err) => {
+      cbReject && cbReject(err);
     });
 
     return $divList;
@@ -533,6 +535,8 @@ export class SdcQuerySet {
           cbReject && cbReject(res);
         },
       ];
+    }).catch((err) => {
+      cbReject && cbReject(err);
     });
 
     return $divList;
@@ -567,6 +571,12 @@ export class SdcQuerySet {
           },
         }),
       );
+    }).catch((err) => {
+      // Refused connection: the request is usually rejected by the socket's onclose already.
+      if (Object.hasOwn(this.openRequest, event_id)) {
+        this.openRequest[event_id][1](err);
+        this._closeOpenRequest(event_id);
+      }
     });
 
     const className = pk === null || pk === -1 ? "create" : "edit";
@@ -791,9 +801,9 @@ export class SdcQuerySet {
             resolveOrigin();
             resolve();
           },
-          () => {
-            rejectOrigin();
-            reject();
+          (err) => {
+            rejectOrigin(err);
+            reject(err);
           },
         ];
       }
@@ -902,10 +912,19 @@ export class SdcQuerySet {
       }
 
       if (data.type === "connect") {
-        this.openRequest[CONNECTING_REQUEST_ID][1](new SdcModelError(data));
-        this._closeOpenRequest(CONNECTING_REQUEST_ID);
+        // The server refused the connection (e.g. 403): the socket is closed on purpose and not
+        // reconnected. Its onclose rejects the remaining requests with this error.
+        const error = new SdcModelError(data);
+        if (Object.hasOwn(this.openRequest, CONNECTING_REQUEST_ID)) {
+          this.openRequest[CONNECTING_REQUEST_ID][1](error);
+          this._closeOpenRequest(CONNECTING_REQUEST_ID);
+        }
         this._autoReconnect = false;
-        this.socket.close();
+        this._isConnectingProcess = false;
+        if (this.socket) {
+          this.socket._sdcRefusal = error;
+          this.socket.close();
+        }
       }
     } else {
       if (data.msg || data.header) {
@@ -991,27 +1010,44 @@ export class SdcQuerySet {
     return new Promise((resolve) => {
       const modelIdentifier =
         `${this.modelName}` + (this.modelId > 0 ? `/${this.modelId}` : "");
-      if (window.location.protocol === "https:") {
-        this.socket = new WebSocket(
-          `wss://${window.location.host}/sdc_ws/model/${modelIdentifier}`,
-        );
-      } else {
-        this.socket = new WebSocket(
-          `ws://${window.location.host}/sdc_ws/model/${modelIdentifier}`,
-        );
-      }
+      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+      // Every connection attempt opens a new socket. Events of a replaced socket are ignored: its
+      // onclose would otherwise reject the requests of the new socket and reset its state.
+      const socket = new WebSocket(
+        `${protocol}://${window.location.host}/sdc_ws/model/${modelIdentifier}`,
+      );
+      this.socket = socket;
 
-      this.socket.onmessage = this._onMessage.bind(this);
-
-      this.socket.onclose = (e) => {
-        console.error(
-          `SDC Model (${this.modelName}, ${this.modelId}) Socket closed unexpectedly`,
-        );
-        this._isConnected = false;
-        for (const value of Object.values(this.openRequest)) {
-          value[1](e);
+      socket.onmessage = (e) => {
+        if (socket === this.socket) {
+          return this._onMessage(e);
         }
+      };
+
+      socket.onclose = (e) => {
+        if (socket !== this.socket) {
+          return;
+        }
+        // _sdcRefusal: the server refused the connection and _onMessage closed the socket on
+        // purpose; the refusal was already reported (pushErrorMsg).
+        const refusal = socket._sdcRefusal;
+        if (refusal) {
+          console.debug(
+            `SDC Model (${this.modelName}, ${this.modelId}) Socket closed: ${refusal.msg}`,
+          );
+        } else {
+          console.error(
+            `SDC Model (${this.modelName}, ${this.modelId}) Socket closed unexpectedly`,
+          );
+        }
+        this._isConnected = false;
+        const openRequests = Object.values(this.openRequest);
         this.openRequest = {};
+        for (const value of openRequests) {
+          value[1](refusal ?? e);
+        }
+        this._onNoOpenRequests.forEach((x) => x());
+        this._onNoOpenRequests = [];
 
         this._isConnectingProcess = false;
         setTimeout(() => {
@@ -1024,17 +1060,17 @@ export class SdcQuerySet {
         }, 1000);
       };
 
-      this.socket.onerror = (err) => {
+      socket.onerror = (err) => {
         console.error(`Model Socket encountered error: ${err} Closing socket`);
-        if (this._isConnected) {
+        if (this._isConnected && socket === this.socket) {
           try {
-            this.socket.close();
+            socket.close();
           } catch (e) {
           }
         }
       };
 
-      this.socket.onopen = () => {
+      socket.onopen = () => {
         resolve();
       };
     });

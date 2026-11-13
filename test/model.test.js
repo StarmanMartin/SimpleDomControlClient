@@ -30,12 +30,19 @@ class MockModelSocket {
   }
 
   close() {
-    this.onclose && this.onclose({ code: 1000, reason: "client-close" });
+    const fire = () => this.onclose && this.onclose({ code: 1000, reason: "client-close" });
+    // A real WebSocket fires onclose asynchronously; asyncClose simulates that delay.
+    if (MockModelSocket.asyncClose) {
+      setTimeout(fire, 5);
+    } else {
+      fire();
+    }
   }
 }
 
 class MockModelSocketServer {
   constructor() {
+    this.refused = [];
     this.records = {
       Author: [
         { id: 1, pk: 1, fields: {name: "Ada Lovelace", age: 36, book_set: [11]} },
@@ -59,6 +66,18 @@ class MockModelSocketServer {
 
   receive(socket, message) {
     const { event_type: eventType, event_id: eventId, args } = message;
+
+    if (this.refused.includes(args.model_name)) {
+      // Like SDCModelConsumer: a PermissionDenied answers with the request's event type.
+      this.emit(socket, {
+        type: eventType,
+        is_error: true,
+        msg: "403 Not allowed!",
+        header: "Upps!!",
+        event_id: eventId,
+      });
+      return;
+    }
 
     if (eventType === "connect") {
       this.emit(socket, {
@@ -150,6 +169,7 @@ describe("model fixtures", () => {
     window.location.protocol = "http:";
     MockModelSocket.server = new MockModelSocketServer();
     global.WebSocket = MockModelSocket;
+    MockModelSocket.asyncClose = false;
     jest.restoreAllMocks();
   });
 
@@ -362,5 +382,52 @@ describe("model fixtures", () => {
 
     await second.create({ title: "Second", author: 2 });
     expect(books.socket.sentMessages.at(-1).args.data).toMatchObject({ title: "Second", author: 2 });
+  });
+  describe("refused connection", () => {
+    beforeEach(() => {
+      MockModelSocket.server.refused.push("Book");
+    });
+
+    test("rejects with the server's error and logs no unexpected close", async () => {
+      const error = jest.spyOn(console, "error").mockImplementation(() => {});
+      const debug = jest.spyOn(console, "debug").mockImplementation(() => {});
+      const books = new Author({ id: 2 }).book_set;
+
+      await expect(books.load()).rejects.toMatchObject({ msg: "403 Not allowed!" });
+      await new Promise((r) => setTimeout(r, 20));
+
+      expect(error).not.toHaveBeenCalled();
+      expect(debug).toHaveBeenCalledWith(expect.stringContaining("403 Not allowed!"));
+      expect(books.openRequest).toEqual({});
+    });
+
+    test("a request after a refusal does not crash while the old socket is still closing", async () => {
+      MockModelSocket.asyncClose = true;
+      const error = jest.spyOn(console, "error").mockImplementation(() => {});
+      jest.spyOn(console, "debug").mockImplementation(() => {});
+      const books = new Author({ id: 2 }).book_set;
+
+      // Like sdc-model-form: get() is refused, then a form is requested right away.
+      await expect(books.load()).rejects.toMatchObject({ msg: "403 Not allowed!" });
+      const formError = new Promise((resolve) => {
+        books.new({}).form({ cbReject: resolve });
+      });
+
+      await expect(formError).resolves.toMatchObject({ msg: "403 Not allowed!" });
+      await new Promise((r) => setTimeout(r, 30));
+
+      expect(error).not.toHaveBeenCalled();
+      expect(books.openRequest).toEqual({});
+    });
+
+    test("views hand the refusal to cbReject", async () => {
+      jest.spyOn(console, "debug").mockImplementation(() => {});
+      const books = new Author({ id: 2 }).book_set;
+
+      const listError = await new Promise((resolve) => {
+        books.listView({ cbReject: resolve });
+      });
+      expect(listError).toMatchObject({ msg: "403 Not allowed!" });
+    });
   });
 });
