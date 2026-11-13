@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.165.1
+
+### Fixed
+- `SdcQuerySet`: a model connection refused twice in a row (e.g. `sdc-model-form` requesting a form after a refused
+  `get()`) no longer throws `Cannot read properties of undefined (reading '1')`. Every connection attempt opens a new
+  socket; events of a replaced socket are now ignored, so its late `onclose` no longer rejects the requests of the
+  new socket.
+- A socket the client closes after a refused `connect` is no longer logged as "Socket closed unexpectedly" (a
+  `console.debug` names the refusal); the remaining requests are rejected with the server's `SdcModelError`
+  instead of the close event, and `noOpenRequests()` waiters are released on close.
+- `view()`, `detailView()`, `listView()` and `form()` pass a refused connection to `cbReject` instead of leaving an
+  unhandled promise rejection; queued `isConnected()` callers get the error.
+
 ## 0.165.0
 
 No changes of the client runtime; released in lockstep with SimpleDomControl 0.165.0 (`sdc_agent where --show`
