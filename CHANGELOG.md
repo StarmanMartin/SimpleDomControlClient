@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.166.0
+
+No changes of the client runtime; released in lockstep with SimpleDomControl 0.166.0 (AI assistant click
+safety via explicit `data-ai-click` / `aiSafeActions` declarations, server-side).
+
 ## 0.165.1
 
 ### Fixed
