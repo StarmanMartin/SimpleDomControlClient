@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.168.0
+
+No changes of the client runtime; released in lockstep with SimpleDomControl 0.168.0 (model forms can receive
+the requesting user via `sdc_pass_user`, server-side).
+
 ## 0.167.1
 
 No changes of the client runtime; released in lockstep with SimpleDomControl 0.167.1 (Jest in projects: the
