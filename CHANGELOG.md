@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.167.1
+
+No changes of the client runtime; released in lockstep with SimpleDomControl 0.167.1 (Jest in projects: the
+bundled apps' JavaScript is marked as ES modules, and the project template maps `sdc_client`).
+
 ## 0.167.0
 
 No changes of the client runtime; released in lockstep with SimpleDomControl 0.167.0 (applications can add their
