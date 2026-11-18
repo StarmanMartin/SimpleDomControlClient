@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.169.0
+
+No changes of the client runtime; released in lockstep with SimpleDomControl 0.169.0 (client filters may no longer
+follow relations unless listed in `SdcMeta.filter_relations`, server-side; breaking for such filters).
+
 ## 0.168.0
 
 No changes of the client runtime; released in lockstep with SimpleDomControl 0.168.0 (model forms can receive
