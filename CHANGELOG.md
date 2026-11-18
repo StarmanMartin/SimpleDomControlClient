@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.167.0
+
+No changes of the client runtime; released in lockstep with SimpleDomControl 0.167.0 (applications can add their
+own MCP tools and API-token privileges, server-side).
+
 ## 0.166.0
 
 No changes of the client runtime; released in lockstep with SimpleDomControl 0.166.0 (AI assistant click
