@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.171.0
+
+No changes of the client runtime; released in lockstep with SimpleDomControl 0.171.0 (`sdc_eval_ai --agent mcp`
+evaluates AI agents on the MCP endpoint, server-side).
+
 ## 0.170.0
 
 No changes of the client runtime; released in lockstep with SimpleDomControl 0.170.0 (MCP: the application's own
