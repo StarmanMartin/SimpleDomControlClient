@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.170.0
+
+No changes of the client runtime; released in lockstep with SimpleDomControl 0.170.0 (MCP: the application's own
+instructions and files as resources `sdc://app/<name>`, server-side).
+
 ## 0.169.0
 
 No changes of the client runtime; released in lockstep with SimpleDomControl 0.169.0 (client filters may no longer
