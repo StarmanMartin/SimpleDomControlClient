@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.171.1
+
+No changes of the client runtime; released in lockstep with SimpleDomControl 0.171.1 (MCP/REST accept the primary
+key in `fields`; `sdc_teach` lists only primary keys the client sets).
+
 ## 0.171.0
 
 No changes of the client runtime; released in lockstep with SimpleDomControl 0.171.0 (`sdc_eval_ai --agent mcp`
